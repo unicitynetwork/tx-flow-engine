@@ -2,7 +2,7 @@
 class Token {
 
     constructor({ token_id, token_class_id, token_value, mint_proofs, mint_request,
-	    mint_salt, token_first_state, transitions }){
+	    mint_salt, transitions }){
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
