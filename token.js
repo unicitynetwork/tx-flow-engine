@@ -19,7 +19,19 @@ class Token {
 	    updateState(transitions[i]);
     }
 
+    applyTx(tx, destination){
+	if(tx.tokenId != this.tokenId)
+	    throw new Error("Token ID in TX does not match this token ID");
+	const transition = new Transition(tx.tokenId, tx.source, tx.input, destination);
+/*	const status = transition.execute();
+	if(status != OK)
+	    throw new Error(`Transition execution error: ${status}`);*/
+	updateState(transition);
+    }
+
     private updateState(transition){
+	if(transition.source.challenge.getHexDigest() != this.state.getHexDigets())
+	    throw new Error(`Error executing transition ${transition.input.path.requestId}: source state does not match the token\s current state`);
 	const status = transition.execute();
 	if(status != OK)
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: ${status}`);

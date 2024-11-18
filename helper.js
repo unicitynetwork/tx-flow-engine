@@ -6,6 +6,13 @@ function calculateGenesisStateHash(tokenId){
     return hasher.hash(tokenId+MINT_SUFFIX_HASH);
 }
 
+function calculateStateHash({tokenId, sign_alg, hash_alg, pubkey, nonce}){
+    const hasher = new SHA256Hasher();
+    const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
+    const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
+    return hasher.hash(tokenId+signAlgCode+hashAlgCode+pubkey+nonce);
+}
+
 async function calculateGenesisRequestId(tokenId){
     const hasher = new SHA256Hasher();
     const minterSigner = getMinterSigner(tokenId);
@@ -20,6 +27,11 @@ function calculateMintPayload(tokenId, tokenClass, tokenValue, destPointer, salt
     return hasher.hash(tokenId+tokenClass+value+destPointer+salt);
 }
 
+function calculatePayload(source, destPointer, salt){
+    const hasher = new SHA256Hasher();
+    return hasher.hash(source.challenge.getHexDigest()+destPointer+salt);
+}
+
 function getMinterSigner(tokenId){
     return new SignerEC(crypto.createHash('sha256').update(MINTER_SECRET+tokenId).digest('hex'));
 }
@@ -29,3 +41,4 @@ function getMinterProvider(transport, tokenId){
     const signer = getMinterSigner(tokenId);
     return new UnicityProvider(transport, signer, hasher);
 }
+

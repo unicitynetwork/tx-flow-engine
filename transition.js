@@ -17,8 +17,8 @@ class Transition {
 	    destination.challenge.pubkey, 
 	    destination.challenge.nonce);
 	if(input.destPointer != expectedDestPointer)return DEST_MISMATCH;
-	const expectedPayload = calculatePayload(this.tokenId, this.source,
-	    this.input);
+	const expectedPayload = calculatePayload(this.source,
+	    this.input.destPointer, this.input.salt);
 	if(this.input.path[path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;
 	return OK;
     }

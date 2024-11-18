@@ -1,9 +1,8 @@
 
 class State {
 
-    constructor(challenge, nonce) {
+    constructor(challenge) {
 	this.challenge = challenge;
-	this.nonce = nonce;
     }
 
 }

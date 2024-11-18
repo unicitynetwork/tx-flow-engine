@@ -14,12 +14,13 @@ class ChallengePubkey {
 	if(status != OK)return status;
 	const l = input.path.length-1;
 	if((input.path[l].authenticator.pubkey != this.pubkey)||
-	    (input.path[l].authenticator.state != getStateHash(
-		this.tokenId,
-		this.pubkey,
-		this.nonce
-	    )))return IP_MISMATCH;
+	    (input.path[l].authenticator.state != getHexDigest()))return INP_MISMATCH;
 	return OK;
+    }
+
+    getHexDigest(){
+	return calculateStateHash({tokenId: this.tokenId, sign_alg: this.sign_alg, 
+	    hash_alg: this.hash_alg, pubkey: this.pubkey, nonce: this.nonce});
     }
 
 }
