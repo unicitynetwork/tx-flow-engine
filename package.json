@@ -1,0 +1,15 @@
+{
+  "name": "unicity-state-machine",
+  "version": "1.0.0",
+  "description": "Generic State Transition Flow engine for value-carrier agents",
+  "main": "token_manager.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,15 +1,16 @@
+"use strict";
 
 class Token {
 
     constructor({ token_id, token_class_id, token_value, mint_proofs, mint_request,
-	    mint_salt, transitions }){
+	    mint_salt, init_state, transitions }){
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
 	this.mintProofs = mint_proofs;
 	this.mintRequest = mint_request;
 	this.mintSalt = mint_salt;
-	this.genesis = token_first_state;
+	this.genesis = init_state;
 	this.transitions = transitions;
 	const genesisStatus = validateGenesis();
 	if(genesisStatus != OK)

@@ -1,8 +1,9 @@
+"use strict";
 
 class ChallengePubkey {
 
-    constructor(tokenId, sign_alg, hash_alg, pubkey, nonce) {
-	this.tokenId = tokenId;
+    constructor(tokenClass, sign_alg, hash_alg, pubkey, nonce) {
+	this.tokenClass = tokenClass;
 	this.sign_alg = sign_alg;
 	this.hash_alg = hash_alg;
 	this.pubkey = pubkey;
@@ -19,7 +20,7 @@ class ChallengePubkey {
     }
 
     getHexDigest(){
-	return calculateStateHash({tokenId: this.tokenId, sign_alg: this.sign_alg, 
+	return calculateStateHash({token_class_id: this.tokenId, sign_alg: this.sign_alg, 
 	    hash_alg: this.hash_alg, pubkey: this.pubkey, nonce: this.nonce});
     }
 

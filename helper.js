@@ -1,3 +1,5 @@
+"use strict";
+
 const MINT_SUFFIX_HEX = crypto.createHash('sha256').update('TOKENID').digest('hex');
 const MINTER_SECRET = 'I_AM_UNIVERSAL_MINTER_FOR_';
 
