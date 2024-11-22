@@ -9,3 +9,5 @@ class TxInput{
     }
 
 }
+
+module.exports = { TxInput }

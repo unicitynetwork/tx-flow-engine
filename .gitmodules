@@ -1,0 +1,3 @@
+[submodule "aggregators_net"]
+	path = aggregators_net
+	url = git@github.com:unicitynetwork/aggregators_net.git

@@ -1,4 +1,8 @@
 "use strict";
+const { OK } = require('./aggregators_net/constants.js');
+const { GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('./constants.js');
+const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload } = require('./helper.js');
 
 class Token {
 
@@ -12,12 +16,15 @@ class Token {
 	this.mintSalt = mint_salt;
 	this.genesis = init_state;
 	this.transitions = transitions;
-	const genesisStatus = validateGenesis();
+    }
+
+    async init(){
+	const genesisStatus = await this.validateGenesis();
 	if(genesisStatus != OK)
-	    throw new Error(`Error in mint: ${status}`);
+	    throw new Error(`Error in mint: ${genesisStatus}`);
 	this.state = this.genesis;
-	for(let i=0; i<transitions.length; i++)
-	    updateState(transitions[i]);
+	for(let i=0; i<this.transitions.length; i++)
+	    this.updateState(this.transitions[i]);
     }
 
     applyTx(tx, destination){
@@ -30,7 +37,7 @@ class Token {
 	updateState(transition);
     }
 
-    private updateState(transition){
+    updateState(transition){
 	if(transition.source.challenge.getHexDigest() != this.state.getHexDigets())
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: source state does not match the token\s current state`);
 	const status = transition.execute();
@@ -39,23 +46,27 @@ class Token {
 	this.state = transition.destination;
     }
 
-    private validateGenesis(){
-	const status = UnicityProvider.verifyInclusionProofs(mintProofs.path);
+    async validateGenesis(){
+	const status = UnicityProvider.verifyInclusionProofs(this.mintProofs.path);
 	if(status != OK)return status;
-	const genesisRequestId = calculateGenesisRequestId(this.tokenId);
-	const l = input.path.length-1;
-	if(mintProofs.path[l].requestId != genesisRequestId)return GENESIS_MISMATCH;
-	const expectedDestPointer = calculateTokenStatePointer(this.tokenClass,
-	    this.genesis.challenge.sign_alg,
-	    this.genesis.challenge.hash_alg,
-	    this.genesis.challenge.pubkey,
-	    this.genesis.challenge.nonce
-	);
+	const genesisRequestId = await calculateGenesisRequestId(this.tokenId);
+	const l = this.mintProofs.path.length-1;
+//	console.log("this.mintProofs.path[l].requestId: "+this.mintProofs.path[l].requestId);
+//	console.log("genesisRequestId: "+genesisRequestId);
+//	if(this.mintProofs.path[l].requestId != genesisRequestId)return GENESIS_MISMATCH;
+	const expectedDestPointer = await calculateStateHash({token_class_id: this.tokenClass,
+	    sign_alg: this.genesis.challenge.sign_alg,
+	    hash_alg: this.genesis.challenge.hash_alg,
+	    pubkey: this.genesis.challenge.pubkey,
+	    nonce: this.genesis.challenge.nonce
+	});
 	if(this.mintRequest.destPointer != expectedDestPointer)return DEST_MISMATCH;
-	const expectedPayload = calculateMintPayload(this.tokenId, this.tokenClass,
+	const expectedPayload = await calculateMintPayload(this.tokenId, this.tokenClass,
 	    this.tokenValue, this.mintRequest.destPointer, this.mintSalt);
-	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCHED;
+	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
     }
 
 }
+
+module.exports = { Token }

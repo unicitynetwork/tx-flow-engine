@@ -25,3 +25,5 @@ class Transition {
     }
 
 }
+
+module.exports = { Transition }

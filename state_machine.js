@@ -1,4 +1,11 @@
 "use strict";
+const { calculateStateHash,  calculateGenesisStateHash, calculateTokenStatePointer,
+     calculateMintPayload, getMinterProvider } = require('./helper.js');
+const { State } = require('./state.js');
+const { ChallengePubkey } = require('./pubkey_challenge.js');
+const { Token } = require('./token.js');
+const { Transaction } = require('./transaction.js');
+const { TxInput } = require('./tx_input.js');
 
 async function mint({
     token_id,
@@ -11,18 +18,19 @@ async function mint({
     hash_alg,
     transport
     }){
-    const stateHash = calculateGenesisStateHash(token_id);
-    const destPointer = calculateTokenStatePointer(token_class_id, sign_alg,
-	hash_alg, pubkey, nonce);
-    const payload = calculateMintPayload(token_id, token_class_id, token_value, destPointer,
-	salte);
-    const mintProvider = getMintProvider(transport, token_id);
+    const stateHash = await calculateGenesisStateHash(token_id);
+    const destPointer = await calculateStateHash({token_class_id, sign_alg,
+	hash_alg, pubkey, nonce});
+    const payload = await calculateMintPayload(token_id, token_class_id, token_value, destPointer,
+	mint_salt);
+    const mintProvider = getMinterProvider(transport, token_id);
     const { requestId, result } = await mintProvider.submitStateTransition(stateHash, payload);
     const { status, path } = await mintProvider.extractProofs(requestId);
 
-    const init_state = new State(new ChallengePubkey(token_id, sign_alg, hash_alg, pubkey, nonce));
+    const init_state = new State(new ChallengePubkey(token_class_id, sign_alg, hash_alg, pubkey, nonce));
     const token = new Token({token_id, token_class_id, token_value, mint_proofs: { path },
 	mint_request: { destPointer }, mint_salt, init_state, transitions: [] });
+    await token.init();
     return token;
 }
 
@@ -44,12 +52,14 @@ function exportFlow(token, pritify){
     return pritify?JSON.stringify(token, null, 4):JSON.stringify(token);
 }
 
-function importFlow(tokenTransitionFlow){
+async function importFlow(tokenTransitionFlow){
     const flow = JSON.parse(tokenTransitionFlow);
-    return new Token({token_id: flow.tokenId, token_class_id: flow.tokenClass, 
+    const token = new Token({token_id: flow.tokenId, token_class_id: flow.tokenClass, 
 	token_value: flow.tokenValue, mint_proofs: flow.mintProofs,
 	mint_request: flow.mintRequest, mint_salt: flow.mintSalt, init_state: flow.genesis,
 	transitions: flow.transitions});
+    await token.init();
+    return token;
 }
 
 function createDestination(token_class_id, sign_alg, hash_alg, pubkey, nonce){
@@ -60,4 +70,13 @@ function createDestination(token_class_id, sign_alg, hash_alg, pubkey, nonce){
 	    token_class_id, sign_alg, hash_alg, pubkey, nonce
 	    )
     }
+}
+
+module.exports = {
+    mint,
+    createTx,
+    importTx,
+    exportFlow,
+    importFlow,
+    createDestination
 }

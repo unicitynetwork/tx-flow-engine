@@ -2,6 +2,9 @@
 "use strict";
 const { Command } = require('commander');
 const crypto = require('crypto');
+const { mint, exportFlow } = require('./state_machine.js');
+const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
+
 require('dotenv').config();
 
 const program = new Command();
@@ -62,17 +65,19 @@ program
       if(!isValid256BitHex(options.pubkey))
 	throw new Error("pubkey must be hex string of 64 digits");
 
-      console.log('Minting token with parameters:');
+/*      console.log('Minting token with parameters:');
       console.log({
         token_id,
         token_class,
         token_value: options.token_value, // Leave this as is, no hex conversion
         pubkey: options.pubkey,
         nonce,
-      });
-      const tokenJson = await mint({ token_id, token_class_id, token_value, pubkey, nonce,  
+      });*/
+      const token = await mint({ token_id, token_class_id: token_class, 
+	token_value: options.token_value, pubkey: options.pubkey, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
-	transport: new JSONRPCTRansport(provider_url)});
+	transport: new JSONRPCTransport(provider_url)});
+      console.log(exportFlow(token, true));
     } catch (error) {
       console.error(error.message);
     }
