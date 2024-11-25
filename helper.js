@@ -48,6 +48,24 @@ function getMinterProvider(transport, tokenId){
     return new UnicityProvider(transport, signer, hasher);
 }
 
+function getStdin(){
+  return new Promise((resolve, reject) => {
+    let inputData = '';
+
+    process.stdin.on('data', (chunk) => {
+      inputData += chunk; // Accumulate the data
+    });
+
+    process.stdin.on('end', () => {
+      resolve(inputData); // Resolve the promise with the input data
+    });
+
+    process.stdin.on('error', (err) => {
+      reject(err); // Reject the promise if there's an error
+    });
+  });
+}
+
 module.exports = {
     calculateGenesisStateHash,
     calculateStateHash,
@@ -55,5 +73,6 @@ module.exports = {
     calculateMintPayload,
     calculatePayload,
     getMinterSigner,
-    getMinterProvider
+    getMinterProvider,
+    getStdin
 }

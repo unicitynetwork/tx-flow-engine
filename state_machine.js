@@ -62,13 +62,13 @@ async function importFlow(tokenTransitionFlow){
     return token;
 }
 
-function createDestination(token_class_id, sign_alg, hash_alg, pubkey, nonce){
+async function createDestination({token_class_id, sign_alg, hash_alg, pubkey, nonce}){
     return{
 	destination: new State(new ChallengePubkey(token_class_id, sign_alg, 
 	    hash_alg, pubkey, nonce)),
-	destPointer: calculateTokenStatePointer(
+	destPointer: await calculateStateHash({
 	    token_class_id, sign_alg, hash_alg, pubkey, nonce
-	    )
+	    })
     }
 }
 

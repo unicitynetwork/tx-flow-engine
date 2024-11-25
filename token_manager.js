@@ -2,8 +2,12 @@
 "use strict";
 const { Command } = require('commander');
 const crypto = require('crypto');
-const { mint, exportFlow } = require('./state_machine.js');
+const { mint, importFlow, exportFlow, createDestination, createTx } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
+const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
+const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
+const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { calculateStateHash, getStdin } = require('./helper.js');
 
 require('dotenv').config();
 
@@ -54,7 +58,7 @@ program
   .requiredOption('--token_id <token_id>', 'ID of the token')
   .requiredOption('--token_class <token_class_id>', 'Class of the token')
   .requiredOption('--token_value <token_value>', 'Value of the token (any string)')
-  .requiredOption('--pubkey <pubkey>', 'Public key for the token')
+//  .requiredOption('--pubkey <pubkey>', 'Public key for the token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
     try {
@@ -62,8 +66,8 @@ program
       const token_class = validateOrConvert('token_class', options.token_class);
 //      const pubkey = validateOrConvert('pubkey', options.pubkey);
       const nonce = validateOrConvert('nonce', options.nonce);
-      if(!isValid256BitHex(options.pubkey))
-	throw new Error("pubkey must be hex string of 64 digits");
+//      if(!isValid256BitHex(options.pubkey))
+//	throw new Error("pubkey must be hex string of 64 digits");
 
 /*      console.log('Minting token with parameters:');
       console.log({
@@ -73,8 +77,9 @@ program
         pubkey: options.pubkey,
         nonce,
       });*/
+      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
       const token = await mint({ token_id, token_class_id: token_class, 
-	token_value: options.token_value, pubkey: options.pubkey, nonce,  
+	token_value: options.token_value, pubkey, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
       console.log(exportFlow(token, true));
@@ -88,8 +93,22 @@ program
   .command('send')
   .description('Send a token')
   .requiredOption('--dest <dest_pointer>', 'Destination pointer for the token')
-  .action((options) => {
-    console.log('Sending token to:', options.dest);
+  .action(async (options) => {
+//    console.log('Sending token to:', options.dest);
+    const token = await importFlow(await getStdin());
+    console.log("============================================");
+    console.log(JSON.stringify(token, null, 4));
+    console.log("============================================");
+    const destPointer = options.dest;
+    const salt = generateRandom256BitHex();
+
+    const signer = new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'));
+    const hasher = new SHA256Hasher();
+    const transport = new JSONRPCTransport(provider_url);
+
+    const provider = new UnicityProvider(transport, signer, hasher);
+
+    console.log(await createTx(token, provider, destPointer, salt, true));
   });
 
 // Pointer command
@@ -98,16 +117,18 @@ program
   .description('Generate or retrieve a pointer')
   .requiredOption('--token_class <token_class>', 'Class of the token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
-  .action((options) => {
-    try {
-      const token_class = validateOrConvert('token_class', options.token_class);
+  .action(async (options) => {
+//    try {
+      const token_class_id = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
+      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
 
-      console.log('Retrieving pointer with parameters:');
-      console.log({ token_class, nonce });
-    } catch (error) {
-      console.error(error.message);
-    }
+      console.log(await calculateStateHash({token_class_id, sign_alg: 'secp256k1', hash_alg: 'sha256', pubkey, nonce}));
+//      console.log('Retrieving pointer with parameters:');
+//      console.log({ token_class, nonce });
+//    } catch (error) {
+//      console.error(error.message);
+//    }
   });
 
 // Receive command
