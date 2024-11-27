@@ -7,6 +7,8 @@ const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
 const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { State } = require('./state.js');
+const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { calculateStateHash, getStdin } = require('./helper.js');
 
 require('dotenv').config();
@@ -82,7 +84,7 @@ program
 	token_value: options.token_value, pubkey, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
-      console.log(exportFlow(token, true));
+      console.log(exportFlow(token, null, true));
     } catch (error) {
       console.error(error.message);
     }
@@ -96,9 +98,6 @@ program
   .action(async (options) => {
 //    console.log('Sending token to:', options.dest);
     const token = await importFlow(await getStdin());
-    console.log("============================================");
-    console.log(JSON.stringify(token, null, 4));
-    console.log("============================================");
     const destPointer = options.dest;
     const salt = generateRandom256BitHex();
 
@@ -108,7 +107,8 @@ program
 
     const provider = new UnicityProvider(transport, signer, hasher);
 
-    console.log(await createTx(token, provider, destPointer, salt, true));
+    const tx = await createTx(token, provider, destPointer, salt, true);
+    console.log(exportFlow(token, tx, true));
   });
 
 // Pointer command
@@ -135,18 +135,21 @@ program
 program
   .command('receive')
   .description('Receive a token')
-  .requiredOption('--token_class <token_class>', 'Class of the token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
-  .action((options) => {
-    try {
-      const token_class = validateOrConvert('token_class', options.token_class);
+  .action(async (options) => {
+//    try {
       const nonce = validateOrConvert('nonce', options.nonce);
+      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
+      const flowJson = await getStdin();
+      const flow = JSON.parse(flowJson);
+      const destination = new State(new ChallengePubkey(flow.token.tokenClass, 'secp256k1', 'sha256', pubkey, nonce));
 
-      console.log('Receiving token with parameters:');
-      console.log({ token_class, nonce });
-    } catch (error) {
-      console.error(error.message);
-    }
+      const token = await importFlow(flowJson, destination);
+//      console.log('Receiving token with parameters:');
+//      console.log({ token_class, nonce });
+//    } catch (error) {
+//      console.error(error.message);
+//    }
   });
 
 // Parse the CLI arguments

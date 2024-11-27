@@ -21,7 +21,7 @@ class ChallengePubkey {
     }
 
     getHexDigest(){
-	return calculateStateHash({token_class_id: this.tokenClas, sign_alg: this.sign_alg, 
+	return calculateStateHash({token_class_id: this.tokenClass, sign_alg: this.sign_alg, 
 	    hash_alg: this.hash_alg, pubkey: this.pubkey, nonce: this.nonce});
     }
 

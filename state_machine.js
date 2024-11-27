@@ -1,6 +1,6 @@
 "use strict";
 const { calculateStateHash,  calculateGenesisStateHash, calculateTokenStatePointer,
-     calculateMintPayload, getMinterProvider } = require('./helper.js');
+     calculateMintPayload, getMinterProvider, calculatePayload } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
@@ -34,31 +34,34 @@ async function mint({
     return token;
 }
 
-async function createTx(token, provider, destPointer, salt, pritify){
-    const stateHash = token.state.challenge.getHexDigest();
-    const payload = calculatePayload(token.state, destPointer, salt);
+async function createTx(token, provider, destPointer, salt){
+    const stateHash = await token.state.challenge.getHexDigest();
+    const payload = await calculatePayload(token.state, destPointer, salt);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
     const input = new TxInput(path, destPointer, salt);
-    const tx = new Transaction(token.tokenId, token.state, input, destPointer);
-    return pritify?JSON.stringify(tx, null, 4):JSON.stringify(tx);
+    return new Transaction(token.tokenId, token.state, input, destPointer);
 }
 
 function importTx(token, tx, destination){
     token.applyTx(tx, destination);
 }
 
-function exportFlow(token, pritify){
-    return pritify?JSON.stringify(token, null, 4):JSON.stringify(token);
+function exportFlow(token, transaction, pretify){
+    const flow = {token, transaction}
+    return pretify?JSON.stringify(flow, null, 4):JSON.stringify(flow);
 }
 
-async function importFlow(tokenTransitionFlow){
+async function importFlow(tokenTransitionFlow, destination){
     const flow = JSON.parse(tokenTransitionFlow);
-    const token = new Token({token_id: flow.tokenId, token_class_id: flow.tokenClass, 
-	token_value: flow.tokenValue, mint_proofs: flow.mintProofs,
-	mint_request: flow.mintRequest, mint_salt: flow.mintSalt, init_state: flow.genesis,
-	transitions: flow.transitions});
+    const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
+	token_value: flow.token.tokenValue, mint_proofs: flow.token.mintProofs,
+	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, init_state: flow.token.genesis,
+	transitions: flow.token.transitions});
     await token.init();
+    if(flow.transaction){
+	token.applyTx(flow.transaction, destination);
+    }
     return token;
 }
 

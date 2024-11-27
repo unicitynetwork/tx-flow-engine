@@ -33,9 +33,9 @@ function calculateMintPayload(tokenId, tokenClass, tokenValue, destPointer, salt
     return hasher.hash(tokenId+tokenClass+value+destPointer+salt);
 }
 
-function calculatePayload(source, destPointer, salt){
+async function calculatePayload(source, destPointer, salt){
     const hasher = new SHA256Hasher();
-    return hasher.hash(source.challenge.getHexDigest()+destPointer+salt);
+    return hasher.hash((await source.challenge.getHexDigest())+destPointer+salt);
 }
 
 function getMinterSigner(tokenId){

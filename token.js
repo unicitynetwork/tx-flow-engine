@@ -2,6 +2,9 @@
 const { OK } = require('./aggregators_net/constants.js');
 const { GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('./constants.js');
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { State } = require('./state.js');
+const { ChallengePubkey } = require('./pubkey_challenge.js');
+const { Transition } = require('./transition.js');
 const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload } = require('./helper.js');
 
 class Token {
@@ -14,7 +17,8 @@ class Token {
 	this.mintProofs = mint_proofs;
 	this.mintRequest = mint_request;
 	this.mintSalt = mint_salt;
-	this.genesis = init_state;
+	const {tokenClass, sign_alg, hash_alg, pubkey, nonce} = init_state.challenge;
+	this.genesis = new State(new ChallengePubkey(tokenClass, sign_alg, hash_alg, pubkey, nonce));
 	this.transitions = transitions;
     }
 
@@ -23,18 +27,29 @@ class Token {
 	if(genesisStatus != OK)
 	    throw new Error(`Error in mint: ${genesisStatus}`);
 	this.state = this.genesis;
-	for(let i=0; i<this.transitions.length; i++)
+	for(let i=0; i<this.transitions.length; i++){
+	    this.transitions[i].source = new State(new 
+		ChallengePubkey(this.transitions[i].source.tokenClass, this.transitions[i].source.sign_alg, 
+		this.transitions[i].source.hash_alg, this.transitions[i].source.pubkey, 
+		this.transitions[i].source.nonce));
 	    this.updateState(this.transitions[i]);
+	}
     }
 
     applyTx(tx, destination){
 	if(tx.tokenId != this.tokenId)
 	    throw new Error("Token ID in TX does not match this token ID");
-	const transition = new Transition(tx.tokenId, tx.source, tx.input, destination);
+	const tx_source = new State(
+	    new ChallengePubkey(
+		tx.source.tokenClass, tx.source.sign_alg, tx.source.hash_alg, tx.source.pubkey,
+		tx.source.nonce
+	    )
+	);
+	const transition = new Transition(tx.tokenId, tx_source, tx.input, destination);
 /*	const status = transition.execute();
 	if(status != OK)
 	    throw new Error(`Transition execution error: ${status}`);*/
-	updateState(transition);
+	this.updateState(transition);
     }
 
     updateState(transition){
@@ -51,8 +66,6 @@ class Token {
 	if(status != OK)return status;
 	const genesisRequestId = await calculateGenesisRequestId(this.tokenId);
 	const l = this.mintProofs.path.length-1;
-//	console.log("this.mintProofs.path[l].requestId: "+this.mintProofs.path[l].requestId);
-//	console.log("genesisRequestId: "+genesisRequestId);
 //	if(this.mintProofs.path[l].requestId != genesisRequestId)return GENESIS_MISMATCH;
 	const expectedDestPointer = await calculateStateHash({token_class_id: this.tokenClass,
 	    sign_alg: this.genesis.challenge.sign_alg,
