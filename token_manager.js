@@ -145,6 +145,8 @@ program
       const destination = new State(new ChallengePubkey(flow.token.tokenClass, 'secp256k1', 'sha256', pubkey, nonce));
 
       const token = await importFlow(flowJson, destination);
+
+      console.log(exportFlow(token, null, true));
 //      console.log('Receiving token with parameters:');
 //      console.log({ token_class, nonce });
 //    } catch (error) {

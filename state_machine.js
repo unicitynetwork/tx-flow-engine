@@ -60,7 +60,9 @@ async function importFlow(tokenTransitionFlow, destination){
 	transitions: flow.token.transitions});
     await token.init();
     if(flow.transaction){
-	token.applyTx(flow.transaction, destination);
+	if(!destination)
+	    throw new Error("Cannot import flow with transaction: destination state for the transaction is missing");
+	await token.applyTx(flow.transaction, destination);
     }
     return token;
 }

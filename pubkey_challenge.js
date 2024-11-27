@@ -1,5 +1,8 @@
 "use strict";
+const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 const { calculateStateHash } = require("./helper.js");
+const { OK } = require('./aggregators_net/constants.js');
+const { INP_MISMATCH } = require('./constants.js');
 
 class ChallengePubkey {
 
@@ -11,12 +14,12 @@ class ChallengePubkey {
 	this.nonce = nonce;
     }
 
-    verify(input){
+    async verify(input){
 	const status = UnicityProvider.verifyInclusionProofs(input.path);
 	if(status != OK)return status;
 	const l = input.path.length-1;
 	if((input.path[l].authenticator.pubkey != this.pubkey)||
-	    (input.path[l].authenticator.state != getHexDigest()))return INP_MISMATCH;
+	    (input.path[l].authenticator.state != (await this.getHexDigest())))return INP_MISMATCH;
 	return OK;
     }
 

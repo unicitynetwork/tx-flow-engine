@@ -28,34 +28,43 @@ class Token {
 	    throw new Error(`Error in mint: ${genesisStatus}`);
 	this.state = this.genesis;
 	for(let i=0; i<this.transitions.length; i++){
-	    this.transitions[i].source = new State(new 
-		ChallengePubkey(this.transitions[i].source.tokenClass, this.transitions[i].source.sign_alg, 
-		this.transitions[i].source.hash_alg, this.transitions[i].source.pubkey, 
-		this.transitions[i].source.nonce));
-	    this.updateState(this.transitions[i]);
+	    const source = new State(new 
+		ChallengePubkey(this.transitions[i].source.challenge.tokenClass, this.transitions[i].source.challenge.sign_alg, 
+		this.transitions[i].source.challenge.hash_alg, this.transitions[i].source.challenge.pubkey, 
+		this.transitions[i].source.challenge.nonce));
+	    const destination = new State(new 
+		ChallengePubkey(this.transitions[i].destination.challenge.tokenClass, this.transitions[i].destination.challenge.sign_alg, 
+		this.transitions[i].destination.challenge.hash_alg, this.transitions[i].destination.challenge.pubkey, 
+		this.transitions[i].destination.challenge.nonce));
+	    this.transitions[i] = new Transition(this.transitions[i].tokenId, source, this.transitions[i].input, 
+		destination);
+	    await this.updateState(this.transitions[i]);
 	}
     }
 
-    applyTx(tx, destination){
+    async applyTx(tx, destination){
 	if(tx.tokenId != this.tokenId)
 	    throw new Error("Token ID in TX does not match this token ID");
 	const tx_source = new State(
 	    new ChallengePubkey(
-		tx.source.tokenClass, tx.source.sign_alg, tx.source.hash_alg, tx.source.pubkey,
-		tx.source.nonce
+		tx.source.challenge.tokenClass, tx.source.challenge.sign_alg, tx.source.challenge.hash_alg, tx.source.challenge.pubkey,
+		tx.source.challenge.nonce
 	    )
 	);
 	const transition = new Transition(tx.tokenId, tx_source, tx.input, destination);
 /*	const status = transition.execute();
 	if(status != OK)
 	    throw new Error(`Transition execution error: ${status}`);*/
-	this.updateState(transition);
+	await this.updateState(transition);
+	this.transitions.push(transition);
     }
 
-    updateState(transition){
-	if(transition.source.challenge.getHexDigest() != this.state.getHexDigets())
+    async updateState(transition){
+//	console.log("transition.source.challenge: "+JSON.stringify(transition.source.challenge, null, 4));
+//	console.log("this.state.challenge: "+JSON.stringify(this.state.challenge, null, 4));
+	if((await transition.source.challenge.getHexDigest()) != (await this.state.challenge.getHexDigest()))
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: source state does not match the token\s current state`);
-	const status = transition.execute();
+	const status = await transition.execute();
 	if(status != OK)
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: ${status}`);
 	this.state = transition.destination;
