@@ -13,9 +13,9 @@ class Transition {
     }
 
     async execute(){
-/*	const status = await this.source.challenge.verify(this.input); // unlock
+	const status = await this.source.challenge.verify(this.input); // unlock
 	if(status != OK)return status;
-	const expectedDestPointer = await calculateStateHash({token_class_id: this.tokenClass, 
+	const expectedDestPointer = await calculateExpectedPointer({token_class_id: this.tokenClass, 
 	    sign_alg: this.destination.challenge.sign_alg, 
 	    hash_alg: this.destination.challenge.hash_alg, 
 	    pubkey: this.destination.challenge.pubkey, 
@@ -25,7 +25,7 @@ class Transition {
 	if(this.input.destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = await calculatePayload(this.source,
 	    this.input.destPointer, this.input.salt);
-	if(this.input.path[path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;*/
+	if(this.input.path[path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;
 	return OK;
     }
 

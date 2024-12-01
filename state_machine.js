@@ -1,5 +1,5 @@
 "use strict";
-const { calculateStateHash,  calculateGenesisStateHash, calculateTokenStatePointer,
+const { calculateStateHash, calculatePointer, calculateGenesisStateHash, 
      calculateMintPayload, getMinterProvider, calculatePayload } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
@@ -11,15 +11,17 @@ async function mint({
     token_id,
     token_class_id,
     token_value,
-    pubkey,
+    secret,
     nonce,
     mint_salt,
     sign_alg,
     hash_alg,
     transport
     }){
+    const signer = getTxSigner(secret, nonce);
+    const pubkey = signer.getPubKey();
     const stateHash = await calculateGenesisStateHash(token_id);
-    const destPointer = await calculateStateHash({token_class_id, sign_alg,
+    const destPointer = await calculateExpectedPointer({token_class_id, sign_alg,
 	hash_alg, pubkey, nonce});
     const payload = await calculateMintPayload(token_id, token_class_id, token_value, destPointer,
 	mint_salt);
@@ -27,16 +29,19 @@ async function mint({
     const { requestId, result } = await mintProvider.submitStateTransition(stateHash, payload);
     const { status, path } = await mintProvider.extractProofs(requestId);
 
-    const init_state = new State(new ChallengePubkey(token_class_id, sign_alg, hash_alg, pubkey, nonce));
+    const init_state = new State(new ChallengePubkey(token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce));
     const token = new Token({token_id, token_class_id, token_value, mint_proofs: { path },
 	mint_request: { destPointer }, mint_salt, init_state, transitions: [] });
     await token.init();
     return token;
 }
 
-async function createTx(token, provider, destPointer, salt){
-    const stateHash = await token.state.challenge.getHexDigest();
+async function createTx(token, destPointer, salt, secret, transport){
+    const stateHash = await token.state.calculateStateHash();
     const payload = await calculatePayload(token.state, destPointer, salt);
+    const signer = getTxSigner(secret, token.state.challenge.nonce);
+    const hasher = new SHA256Hasher();
+    const provider = new UnicityProvider(transport, signer, hasher);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
     const input = new TxInput(path, destPointer, salt);
@@ -67,11 +72,11 @@ async function importFlow(tokenTransitionFlow, destination){
     return token;
 }
 
-async function createDestination({token_class_id, sign_alg, hash_alg, pubkey, nonce}){
+async function createDestination({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
     return{
-	destination: new State(new ChallengePubkey(token_class_id, sign_alg, 
+	destination: new State(new ChallengePubkey(token_class_id, token_id, sign_alg, 
 	    hash_alg, pubkey, nonce)),
-	destPointer: await calculateStateHash({
+	destPointer: await calculatePointer({
 	    token_class_id, sign_alg, hash_alg, pubkey, nonce
 	    })
     }

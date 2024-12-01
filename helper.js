@@ -12,7 +12,23 @@ function calculateGenesisStateHash(tokenId){
     return hasher.hash(tokenId+MINT_SUFFIX_HEX);
 }
 
-function calculateStateHash({token_class_id, sign_alg, hash_alg, pubkey, nonce}){
+function calculateStateHash({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
+    const hasher = new SHA256Hasher();
+    const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
+    const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
+    return hasher.hash(token_class_id+signAlgCode+token_id+hashAlgCode+pubkey+nonce);
+}
+
+function calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}){
+    const signer = getTxSigner(secret, nonce);
+    const pubkey = signer.publicKey;
+    const hasher = new SHA256Hasher();
+    const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
+    const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
+    return hasher.hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
+}
+
+function calculateExpectedPointer({token_class_id, sign_alg, hash_alg, pubkey, nonce}){
     const hasher = new SHA256Hasher();
     const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
     const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
@@ -48,6 +64,10 @@ function getMinterProvider(transport, tokenId){
     return new UnicityProvider(transport, signer, hasher);
 }
 
+function getTxSigner(secret, nonce){ // Changed
+    return new SignerEC(crypto.createHash('sha256').update(secret+nonce).digest('hex'));
+}
+
 function getStdin(){
   return new Promise((resolve, reject) => {
     let inputData = '';
@@ -69,6 +89,8 @@ function getStdin(){
 module.exports = {
     calculateGenesisStateHash,
     calculateStateHash,
+    calculatePointer,
+    calculateExpectedPointer,
     calculateGenesisRequestId,
     calculateMintPayload,
     calculatePayload,

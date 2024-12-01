@@ -2,14 +2,14 @@
 "use strict";
 const { Command } = require('commander');
 const crypto = require('crypto');
-const { mint, importFlow, exportFlow, createDestination, createTx } = require('./state_machine.js');
+const { mint, importFlow, exportFlow, createTx } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
 const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
-const { calculateStateHash, getStdin } = require('./helper.js');
+const { calculateStateHash, calculatePointer, getStdin } = require('./helper.js');
 
 require('dotenv').config();
 
@@ -63,7 +63,7 @@ program
 //  .requiredOption('--pubkey <pubkey>', 'Public key for the token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
-    try {
+//    try {
       const token_id = validateOrConvert('token_id', options.token_id);
       const token_class = validateOrConvert('token_class', options.token_class);
 //      const pubkey = validateOrConvert('pubkey', options.pubkey);
@@ -79,15 +79,15 @@ program
         pubkey: options.pubkey,
         nonce,
       });*/
-      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
+//      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey(); // must change
       const token = await mint({ token_id, token_class_id: token_class, 
 	token_value: options.token_value, pubkey, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
       console.log(exportFlow(token, null, true));
-    } catch (error) {
+/*    } catch (error) {
       console.error(error.message);
-    }
+    }*/
   });
 
 // Send command
@@ -101,13 +101,9 @@ program
     const destPointer = options.dest;
     const salt = generateRandom256BitHex();
 
-    const signer = new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'));
     const hasher = new SHA256Hasher();
     const transport = new JSONRPCTransport(provider_url);
-
-    const provider = new UnicityProvider(transport, signer, hasher);
-
-    const tx = await createTx(token, provider, destPointer, salt, true);
+    const tx = await createTx(token, destPointer, salt, secret, transport);
     console.log(exportFlow(token, tx, true));
   });
 
@@ -123,7 +119,7 @@ program
       const nonce = validateOrConvert('nonce', options.nonce);
       const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
 
-      console.log(await calculateStateHash({token_class_id, sign_alg: 'secp256k1', hash_alg: 'sha256', pubkey, nonce}));
+      console.log(await calculatePointer({token_class_id, sign_alg: 'secp256k1', hash_alg: 'sha256', pubkey, nonce}));
 //      console.log('Retrieving pointer with parameters:');
 //      console.log({ token_class, nonce });
 //    } catch (error) {
@@ -142,7 +138,7 @@ program
       const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
       const flowJson = await getStdin();
       const flow = JSON.parse(flowJson);
-      const destination = new State(new ChallengePubkey(flow.token.tokenClass, 'secp256k1', 'sha256', pubkey, nonce));
+      const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', pubkey, nonce));
 
       const token = await importFlow(flowJson, destination);
 
