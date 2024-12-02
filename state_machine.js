@@ -1,11 +1,13 @@
 "use strict";
-const { calculateStateHash, calculatePointer, calculateGenesisStateHash, 
-     calculateMintPayload, getMinterProvider, calculatePayload } = require('./helper.js');
+const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
+     calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
 const { Transaction } = require('./transaction.js');
 const { TxInput } = require('./tx_input.js');
+const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
+const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 
 async function mint({
     token_id,
@@ -57,7 +59,7 @@ function exportFlow(token, transaction, pretify){
     return pretify?JSON.stringify(flow, null, 4):JSON.stringify(flow);
 }
 
-async function importFlow(tokenTransitionFlow, destination){
+async function importFlow(tokenTransitionFlow, secret, nonce){
     const flow = JSON.parse(tokenTransitionFlow);
     const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
 	token_value: flow.token.tokenValue, mint_proofs: flow.token.mintProofs,
@@ -65,14 +67,17 @@ async function importFlow(tokenTransitionFlow, destination){
 	transitions: flow.token.transitions});
     await token.init();
     if(flow.transaction){
-	if(!destination)
-	    throw new Error("Cannot import flow with transaction: destination state for the transaction is missing");
+	if(!nonce)
+	    throw new Error("Cannot import flow with transaction: nonce of the state for the transaction is missing");
+	const signer = getTxSigner(secret, nonce);
+	const pubkey = signer.getPubKey();
+	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', pubkey, nonce));
 	await token.applyTx(flow.transaction, destination);
     }
     return token;
 }
 
-async function createDestination({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
+/*async function createDestination({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
     return{
 	destination: new State(new ChallengePubkey(token_class_id, token_id, sign_alg, 
 	    hash_alg, pubkey, nonce)),
@@ -80,13 +85,12 @@ async function createDestination({token_class_id, token_id, sign_alg, hash_alg, 
 	    token_class_id, sign_alg, hash_alg, pubkey, nonce
 	    })
     }
-}
+}*/
 
 module.exports = {
     mint,
     createTx,
     importTx,
     exportFlow,
-    importFlow,
-    createDestination
+    importFlow
 }

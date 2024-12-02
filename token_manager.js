@@ -81,7 +81,7 @@ program
       });*/
 //      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey(); // must change
       const token = await mint({ token_id, token_class_id: token_class, 
-	token_value: options.token_value, pubkey, nonce,  
+	token_value: options.token_value, secret, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
       console.log(exportFlow(token, null, true));
@@ -117,9 +117,9 @@ program
 //    try {
       const token_class_id = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
-      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
+//      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
 
-      console.log(await calculatePointer({token_class_id, sign_alg: 'secp256k1', hash_alg: 'sha256', pubkey, nonce}));
+      console.log(await calculatePointer({token_class_id, sign_alg: 'secp256k1', hash_alg: 'sha256', secret, nonce}));
 //      console.log('Retrieving pointer with parameters:');
 //      console.log({ token_class, nonce });
 //    } catch (error) {
@@ -135,12 +135,11 @@ program
   .action(async (options) => {
 //    try {
       const nonce = validateOrConvert('nonce', options.nonce);
-      const pubkey = await (new SignerEC(crypto.createHash('sha256').update(secret).digest('hex'))).getPubKey();
       const flowJson = await getStdin();
       const flow = JSON.parse(flowJson);
-      const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', pubkey, nonce));
+//      const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', pubkey, nonce));
 
-      const token = await importFlow(flowJson, destination);
+      const token = await importFlow(flowJson, secret, nonce);
 
       console.log(exportFlow(token, null, true));
 //      console.log('Receiving token with parameters:');

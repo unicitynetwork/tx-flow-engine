@@ -6,6 +6,10 @@ class State {
 	this.challenge = challenge;
     }
 
+    calculateStateHash(){
+	return this.challenge.getHexDigest();
+    }
+
 }
 
 module.exports = { State }

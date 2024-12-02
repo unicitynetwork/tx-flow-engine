@@ -96,5 +96,6 @@ module.exports = {
     calculatePayload,
     getMinterSigner,
     getMinterProvider,
+    getTxSigner,
     getStdin
 }
