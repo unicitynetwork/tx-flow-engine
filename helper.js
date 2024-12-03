@@ -1,4 +1,5 @@
 "use strict";
+const { NOT_INCLUDED } = require("./aggregators_net/constants.js");
 const crypto = require("crypto");
 const { SHA256Hasher } = require("./aggregators_net/hasher/sha256hasher.js");
 const { SignerEC } = require("./aggregators_net/signer/SignerEC.js");
@@ -68,6 +69,15 @@ function getTxSigner(secret, nonce){ // Changed
     return new SignerEC(crypto.createHash('sha256').update(secret+nonce).digest('hex'));
 }
 
+async function isUnspent(provider, state){
+    const { status, path } = await provider.extractProofs(await provider.getRequestId(state));
+    return status == NOT_INCLUDED;
+}
+
+async function confirmOwnership(token, signer){
+    return token.state.challenge.pubkey == signer.getPubKey();
+}
+
 function getStdin(){
   return new Promise((resolve, reject) => {
     let inputData = '';
@@ -86,6 +96,31 @@ function getStdin(){
   });
 }
 
+function splitStdin(data){
+    const result = {};
+    const parts = data.split(/###TOKEN\s+/).filter(Boolean); // Split by '###TOKEN' and remove empty strings
+
+    for (const part of parts) {
+        const firstSpace = part.indexOf(' ');
+        if (firstSpace === -1) {
+            console.error(`Malformed token part: ${part}`);
+            continue;
+        }
+
+        const tokenFileName = part.slice(0, firstSpace).trim();
+        const jsonString = part.slice(firstSpace + 1).trim();
+	const jsonId = crypto.createHash('sha256').update(tokenFileName).digest('hex');
+
+        try {
+            result[jsonId] = {json: jsonString, url: tokenFileName};
+        } catch (error) {
+            console.error(`Invalid JSON for token file "${tokenFileName}":`, error);
+        }
+    }
+
+    return result;
+}
+
 module.exports = {
     calculateGenesisStateHash,
     calculateStateHash,
@@ -94,8 +129,11 @@ module.exports = {
     calculateGenesisRequestId,
     calculateMintPayload,
     calculatePayload,
+    confirmOwnership,
     getMinterSigner,
     getMinterProvider,
     getTxSigner,
-    getStdin
+    isUnspent,
+    getStdin,
+    splitStdin
 }

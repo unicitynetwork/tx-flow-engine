@@ -1,6 +1,6 @@
 "use strict";
 const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
-     calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner } = require('./helper.js');
+     calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner, isUnspent, confirmOwnership } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
@@ -66,7 +66,7 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, init_state: flow.token.genesis,
 	transitions: flow.token.transitions});
     await token.init();
-    if(flow.transaction){
+    if(flow.transaction && secret){
 	if(!nonce)
 	    throw new Error("Cannot import flow with transaction: nonce of the state for the transaction is missing");
 	const signer = getTxSigner(secret, nonce);
@@ -77,20 +77,40 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
     return token;
 }
 
-/*async function createDestination({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
-    return{
-	destination: new State(new ChallengePubkey(token_class_id, token_id, sign_alg, 
-	    hash_alg, pubkey, nonce)),
-	destPointer: await calculatePointer({
-	    token_class_id, sign_alg, hash_alg, pubkey, nonce
-	    })
+async function getTokenStatus(token, secret, transport){
+    const stateHash = await token.state.calculateStateHash();
+    const signer = getTxSigner(secret, token.state.challenge.nonce);
+    const hasher = new SHA256Hasher();
+    const provider = new UnicityProvider(transport, signer, hasher);
+    const isLatestState = await isUnspent(provider, stateHash);
+    const isOwner = await confirmOwnership(token, signer);
+    const { id, classId, value } = token.getStats();
+    return { id, classId, value, unspent: isLatestState, owned: isOwner }
+}
+
+async function collectTokens(tokens, tokenClass, targetValue, secret, transport){
+    let filteredTokens = [];
+    let filteredTokenStats = [];
+    let totalValue = BigInt(0);
+    for(const name in tokens){
+	const status = await getTokenStatus(tokens[name], secret, transport);
+	const { id, classId, value, unspent, owned } = status;
+	if((classId == tokenClass) && unspent && owned){
+	    filteredTokens[name] = tokens[name];
+	    filteredTokenStats[name] = status;
+	    totalValue+=BigInt(value);
+	    if(targetValue!=0)
+		if(targetValue<=totalValue)break;
+	}
     }
-}*/
+    return { totalValue, tokens: filteredTokens, stats: filteredTokenStats }
+}
 
 module.exports = {
     mint,
     createTx,
     importTx,
     exportFlow,
-    importFlow
+    importFlow,
+    collectTokens
 }

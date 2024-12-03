@@ -54,16 +54,11 @@ class Token {
 	    )
 	);
 	const transition = new Transition(tx.tokenId, tx_source, tx.input, destination);
-/*	const status = transition.execute();
-	if(status != OK)
-	    throw new Error(`Transition execution error: ${status}`);*/
 	await this.updateState(transition);
 	this.transitions.push(transition);
     }
 
     async updateState(transition){
-//	console.log("transition.source.challenge: "+JSON.stringify(transition.source.challenge, null, 4));
-//	console.log("this.state.challenge: "+JSON.stringify(this.state.challenge, null, 4));
 	if((await transition.source.challenge.getHexDigest()) != (await this.state.challenge.getHexDigest()))
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: source state does not match the token\s current state`);
 	const status = await transition.execute();
@@ -77,7 +72,6 @@ class Token {
 	if(status != OK)return status;
 	const genesisRequestId = await calculateGenesisRequestId(this.tokenId);
 	const l = this.mintProofs.path.length-1;
-//	if(this.mintProofs.path[l].requestId != genesisRequestId)return GENESIS_MISMATCH;
 	const expectedDestPointer = await calculateExpectedPointer({token_class_id: this.tokenClass,
 	    sign_alg: this.genesis.challenge.sign_alg,
 	    hash_alg: this.genesis.challenge.hash_alg,
@@ -89,6 +83,10 @@ class Token {
 	    this.tokenValue, this.mintRequest.destPointer, this.mintSalt);
 	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
+    }
+
+    getStats(){
+	return { id: this.tokenId, classId: this.tokenClass, value: this.tokenValue }
     }
 
 }
