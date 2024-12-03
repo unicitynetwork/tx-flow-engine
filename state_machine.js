@@ -106,16 +106,6 @@ async function collectTokens(tokens, tokenClass, targetValue, secret, transport)
     return { totalValue, tokens: filteredTokens, stats: filteredTokenStats }
 }
 
-/*async function createDestination({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
-    return{
-	destination: new State(new ChallengePubkey(token_class_id, token_id, sign_alg, 
-	    hash_alg, pubkey, nonce)),
-	destPointer: await calculatePointer({
-	    token_class_id, sign_alg, hash_alg, pubkey, nonce
-	    })
-    }
-}*/
-
 module.exports = {
     mint,
     createTx,

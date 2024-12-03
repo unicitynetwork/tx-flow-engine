@@ -12,7 +12,7 @@ read -p "Enter Token Class (default: unicity_test_coin): " token_class
 token_class=${token_class:-unicity_test_coin}
 
 read -p "Enter Token Value (default: 10000000000000000000): " token_value
-token_value=${token_value:-10000000000000000000}
+token_value=${token_value:-1000000000000000000}
 
 read -p "Enter Nonce (default: random 6-digit number): " nonce
 nonce=${nonce:-$((RANDOM % 900000 + 100000))}
