@@ -2,14 +2,14 @@
 "use strict";
 const { Command } = require('commander');
 const crypto = require('crypto');
-const { mint, importFlow, exportFlow, createTx } = require('./state_machine.js');
+const { mint, importFlow, exportFlow, createTx, collectTokens } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
 const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
-const { calculateStateHash, calculatePointer, getStdin } = require('./helper.js');
+const { calculateStateHash, calculatePointer, getStdin, splitStdin } = require('./helper.js');
 
 require('dotenv').config();
 
@@ -148,6 +148,36 @@ program
 //      console.error(error.message);
 //    }
   });
+
+// Summarize all owned tokens
+program
+  .command('summary')
+  .description('Summarize all owned tokens')
+  .requiredOption('--token_class <token_class>', 'Class of the token')
+  .action(async (options) => {
+//    try {
+      const tokenClass = validateOrConvert('token_class', options.token_class);
+      const flowJsons = splitStdin(await getStdin());
+//      const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', pubkey, nonce));
+
+      let tokens = {}
+      let tokenUrls = {}
+
+      for(const name in flowJsons){
+	tokenUrls[name] = flowJsons[name].url;
+	tokens[name] = await importFlow(flowJsons[name].json);
+      }
+
+//    console.log(JSON.stringify(tokens, null, 4));
+
+      const collection = await collectTokens(tokens, tokenClass, BigInt(0), secret, new JSONRPCTransport(provider_url));
+
+      console.log(collection);
+      for(const name in tokenUrls)
+	if(collection.tokens[name])
+	    console.log(name+": "+tokenUrls[name]);
+  });
+
 
 // Parse the CLI arguments
 program.parse(process.argv);

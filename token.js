@@ -91,6 +91,10 @@ class Token {
 	return OK;
     }
 
+    getStats(){
+	return { id: this.tokenId, classId: this.tokenClass, value: this.tokenValue }
+    }
+
 }
 
 module.exports = { Token }
