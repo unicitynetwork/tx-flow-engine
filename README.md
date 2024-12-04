@@ -89,12 +89,17 @@ Command line tool for processing transaction flows and managing tokens. Uses sta
 Scripts in ./cli. Manages TX flows stored in ./txf folder.
 
 ### Example flow:
-#### On User1: Mint token to user1 with secret1: stf/cli$ ./mint.sh 
+#### On User1: Mint token to user1 with secret1: 
+```bash
+stf/cli$ ./mint.sh 
 Enter Token ID (default: random 6-digit number): 
 Enter Token Class (default: unicity_test_coin): 
 Enter Token Value (default: 10000000000000000000): 
 Enter Nonce (default: random 6-digit number): 
 Enter User Secret: secret1
+```
+
+```json
 {
     "token": {
         "tokenId": "bd666f6719089472630dcf9a5920fefcd2da759372ad65045f0f512a0e10490f",
@@ -143,20 +148,26 @@ Enter User Secret: secret1
     },
     "transaction": null
 }
-
+```
+```bash
 ================================================================================
 Command executed successfully. TX flow saved to txf/unicity_test_coin_125223.txf.
+```
 
-#### On User2: generate the recipient's pointer: stf/cli$ ./pointer.sh 
+#### On User2: generate the recipient's pointer: 
+```bash
+stf/cli$ ./pointer.sh 
 Enter Token Class (default: unicity_test_coin): 
 Enter Nonce (default: random 6-digit number): 
 Enter User Secret: 
 Nonce: 113524
 Pointer: 7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f
+```
 
 #### User2 shares pointer 7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f with User1
 
 #### On User1: create transaction changing ownership of the token in txf/unicity_test_coin_125223.txf to User2: stf/cli$ ./send.sh 
+```bash
 Available transaction flow files:
 1. txf/unicity_test_coin_112036.txf
 2. txf/unicity_test_coin_118750.txf
@@ -168,6 +179,8 @@ Available transaction flow files:
 Select a file by its number: 5
 Enter Destination Pointer: 7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f
 Enter User Secret: secret1
+```
+```json
 {
     "token": {
         "tokenId": "bd666f6719089472630dcf9a5920fefcd2da759372ad65045f0f512a0e10490f",
@@ -246,15 +259,18 @@ Enter User Secret: secret1
         "destPointer": "7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f"
     }
 }
-
+```
+```bash
 ================================================================================
 Token was spent successfully using transaction flow file txf/unicity_test_coin_125223.txf to destination 7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f.
 File txf/unicity_test_coin_125223.txf was updated with the new transaction, but cannot be spent till the destination pointer is resolved into the full state.
 Old transaction flow file is invalid now (unicity will not confirm spend from the old state anymore) and was archived into txf/unicity_test_coin_125223.txf.spent.1733269966
+```
 
 #### User1 shares file unicity_test_coin_125223.txf with User2. User2 places this file into txf/unicity_test_coin_125223.txf
 
 #### On User2. User2 resolves the transaction in the unicity_test_coin_125223.txf into the transition transforming the token ownership state to User2. I.e., by knowing the recipient's nonce and secret, it is possible to re-generate the recipient state out of the pointer:
+```bash
 stf/cli$ ./receive.sh 
 Available transaction flow files:
 1. txf/unicity_test_coin_112036.txf
@@ -267,6 +283,8 @@ Available transaction flow files:
 Select a file by its number: 5
 Enter Nonce: 113524
 Enter User Secret: secret2
+```
+```json
 {
     "token": {
         "tokenId": "bd666f6719089472630dcf9a5920fefcd2da759372ad65045f0f512a0e10490f",
@@ -356,12 +374,16 @@ Enter User Secret: secret2
     },
     "transaction": null
 }
-
+```
+```bash
 ======================================================================
 Transaction received successfully for nonce 113524.
 Updated file: txf/unicity_test_coin_125223.txf.
+```
 
-#### On User2. Scan/summarize tokens available for the spent by User2 in ./txf folder and calculate the total balance: stf/cli$ ./summarize.sh 
+#### On User2. Scan/summarize tokens available for the spent by User2 in ./txf folder and calculate the total balance: 
+```bash
+stf/cli$ ./summarize.sh 
 Transaction flow files:
 1. txf/unicity_test_coin_112036.txf
 2. txf/unicity_test_coin_118750.txf
@@ -373,7 +395,9 @@ Transaction flow files:
 Enter Token Class (default: unicity_test_coin): 
 Enter User Secret: 
 =============================
-Tokens ready to be spent: 
+Tokens ready to be spent:
+```
+```json
 {
   totalValue: 11000000000000000000n,
   tokens: [
@@ -417,9 +441,10 @@ Tokens ready to be spent:
     }
   ]
 }
-
+```
+```bash
 =============================
 TXF files storing the tokens: 
 8b49d4350bfd4f694e77fd7f683c794b12c47bd02f9b395bcd7c84a03e2d04db: txf/unicity_test_coin_125223.txf
 01947e619d7dd070b6f77a7b8aa42af6e1a17e05235386fa54027aa1893d9ecf: txf/unicity_test_coin_127804.txf
-
+```
