@@ -166,8 +166,9 @@ Pointer: 7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f
 
 #### User2 shares pointer 7931e59604d2b6a3db52d8debf1aedd7074758761d8f87e36b50793151f7013f with User1
 
-#### On User1: create transaction changing ownership of the token in txf/unicity_test_coin_125223.txf to User2: stf/cli$ ./send.sh 
+#### On User1: create transaction changing ownership of the token in txf/unicity_test_coin_125223.txf to User2:  
 ```bash
+stf/cli$ ./send.sh
 Available transaction flow files:
 1. txf/unicity_test_coin_112036.txf
 2. txf/unicity_test_coin_118750.txf
