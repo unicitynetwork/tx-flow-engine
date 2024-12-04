@@ -398,7 +398,7 @@ Enter User Secret:
 =============================
 Tokens ready to be spent:
 ```
-```json
+```javascript
 {
   totalValue: 11000000000000000000n,
   tokens: [
