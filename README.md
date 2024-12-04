@@ -7,9 +7,9 @@ completely other kinds of processes. All the transaction commitments are being a
 accomodating millions of transaction commitments per block.
 
 ## Setup instructions
- - Fetch the project: `git clone --recurse-submodules https://github.com/unicitynetwork/stf.git`
+ - Fetch the project: `git clone --recurse-submodules https://github.com/unicitynetwork/tx-flow-engine.git`
  - Make sure to have npm and node installed
- - go to `stf` project folder
+ - go to `tx-flow-engine` project folder
  - run `npm install`
  - go to `aggregators_net` subfolder
  - run `npm install`
