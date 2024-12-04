@@ -6,6 +6,19 @@ its destination state as well as no info abou the nature of the transaction itse
 completely other kinds of processes. All the transaction commitments are being aggregated into global distributed hash tree data structure rooted in the Unicity blockchain. In this manner, we have horizontally scalable on-demand blockchain infrastructure capable
 accomodating millions of transaction commitments per block.
 
+## Setup instructions
+ - Fetch the project: `git clone --recurse-submodules https://github.com/unicitynetwork/stf.git`
+ - Make sure to have npm and node installed
+ - go to `stf` project folder
+ - run `npm install`
+ - go to `aggregators_net` subfolder
+ - run `npm install`
+
+## Usage
+ - use `state_machine.js` and `helper.js` for SDK
+ - use `token_manager.js` as generic CLI tool
+ - use bash scripts in `./cli` folder to mint, transfer and receive tokens stored in TXF files as JSON object
+
 ## Token
 Token is an entity holding value and optionally some other application-specific data. Token is mined by a client within client's premises with the cryptographic proofs stating the valid reasons why the token could be mined. In a simple example, it is enough to
 demonstrate the proof that a token with the given id has been mined just once. Token state represents encoding of the current owner as a challenge requesting to demonstrate knowledge of private key for the given public key (via digital signature).
