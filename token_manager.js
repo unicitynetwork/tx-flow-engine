@@ -49,8 +49,8 @@ function generateRandom256BitHex() {
 }
 
 program
-  .name('token-cli')
-  .description('CLI app for managing tokens')
+  .name('token_manager.js')
+  .description('CLI app for managing tokens by processing TX flows')
   .version('1.0.0');
 
 // Mint command
@@ -95,7 +95,7 @@ program
 // Pointer command
 program
   .command('pointer')
-  .description('Generate or retrieve a pointer')
+  .description('Generate a pointer')
   .requiredOption('--token_class <token_class>', 'Class of the token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
