@@ -8,6 +8,7 @@ const { Transaction } = require('./transaction.js');
 const { TxInput } = require('./tx_input.js');
 const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { JSONRPCTRansport } = require('./aggregators_net/client/http_client.js');
 
 async function mint({
     token_id,
@@ -36,6 +37,10 @@ async function mint({
 	mint_request: { destPointer }, mint_salt, init_state, transitions: [] });
     await token.init();
     return token;
+}
+
+function generateRecipientPointer(token_class_id, sign_alg, hash_alg, secret, nonce){
+    return calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce});
 }
 
 async function createTx(token, destPointer, salt, secret, transport){
@@ -106,11 +111,17 @@ async function collectTokens(tokens, tokenClass, targetValue, secret, transport)
     return { totalValue, tokens: filteredTokens, stats: filteredTokenStats }
 }
 
+async function getHTTPTransport(url){
+    return new JSONRPCTRansport(url);
+}
+
 module.exports = {
     mint,
+    generateRecipientPointer,
     createTx,
     importTx,
     exportFlow,
     importFlow,
-    collectTokens
+    collectTokens,
+    getHTTPTransport
 }

@@ -4,12 +4,17 @@
   "description": "Generic State Transition Flow engine for value-carrier agents",
   "main": "token_manager.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "webpack"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "commander": "^12.1.0",
+    "crypto-js": "^4.2.0",
     "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "webpack": "^5.97.0",
+    "webpack-cli": "^5.1.4"
   }
 }

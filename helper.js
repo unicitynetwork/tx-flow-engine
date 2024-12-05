@@ -1,11 +1,11 @@
 "use strict";
 const { NOT_INCLUDED } = require("./aggregators_net/constants.js");
-const crypto = require("crypto");
+import CryptoJS from 'crypto-js';
 const { SHA256Hasher } = require("./aggregators_net/hasher/sha256hasher.js");
 const { SignerEC } = require("./aggregators_net/signer/SignerEC.js");
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 
-const MINT_SUFFIX_HEX = crypto.createHash('sha256').update('TOKENID').digest('hex');
+const MINT_SUFFIX_HEX = CryptoJS.SHA256('TOKENID').toString(CryptoJS.enc.Hex);
 const MINTER_SECRET = 'I_AM_UNIVERSAL_MINTER_FOR_';
 
 function calculateGenesisStateHash(tokenId){
@@ -15,8 +15,8 @@ function calculateGenesisStateHash(tokenId){
 
 function calculateStateHash({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
     const hasher = new SHA256Hasher();
-    const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
-    const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
+    const signAlgCode = CryptoJS.SHA256(sign_alg).toString(CryptoJS.enc.Hex);
+    const hashAlgCode = CryptoJS.SHA256(hash_alg).toString(CryptoJS.enc.Hex);
     return hasher.hash(token_class_id+signAlgCode+token_id+hashAlgCode+pubkey+nonce);
 }
 
@@ -24,15 +24,15 @@ function calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}){
     const signer = getTxSigner(secret, nonce);
     const pubkey = signer.publicKey;
     const hasher = new SHA256Hasher();
-    const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
-    const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
+    const signAlgCode = CryptoJS.SHA256(sign_alg).toString(CryptoJS.enc.Hex);
+    const hashAlgCode = CryptoJS.SHA256(hash_alg).toString(CryptoJS.enc.Hex);
     return hasher.hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
 }
 
 function calculateExpectedPointer({token_class_id, sign_alg, hash_alg, pubkey, nonce}){
     const hasher = new SHA256Hasher();
-    const signAlgCode = crypto.createHash('sha256').update(sign_alg).digest('hex');
-    const hashAlgCode = crypto.createHash('sha256').update(hash_alg).digest('hex');
+    const signAlgCode = CryptoJS.SHA256(sign_alg).toString(CryptoJS.enc.Hex);
+    const hashAlgCode = CryptoJS.SHA256(hash_alg).toString(CryptoJS.enc.Hex);
     return hasher.hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
 }
 
@@ -56,7 +56,7 @@ async function calculatePayload(source, destPointer, salt){
 }
 
 function getMinterSigner(tokenId){
-    return new SignerEC(crypto.createHash('sha256').update(MINTER_SECRET+tokenId).digest('hex'));
+    return new SignerEC(CryptoJS.SHA256(MINTER_SECRET+tokenId).toString(CryptoJS.enc.Hex));
 }
 
 function getMinterProvider(transport, tokenId){
@@ -66,7 +66,7 @@ function getMinterProvider(transport, tokenId){
 }
 
 function getTxSigner(secret, nonce){ // Changed
-    return new SignerEC(crypto.createHash('sha256').update(secret+nonce).digest('hex'));
+    return new SignerEC(CryptoJS.SHA256(secret+nonce).toString(CryptoJS.enc.Hex));
 }
 
 async function isUnspent(provider, state){
@@ -109,7 +109,7 @@ function splitStdin(data){
 
         const tokenFileName = part.slice(0, firstSpace).trim();
         const jsonString = part.slice(firstSpace + 1).trim();
-	const jsonId = crypto.createHash('sha256').update(tokenFileName).digest('hex');
+	const jsonId = CryptoJS.SHA256(tokenFileName).toString(CryptoJS.enc.Hex)
 
         try {
             result[jsonId] = {json: jsonString, url: tokenFileName};
