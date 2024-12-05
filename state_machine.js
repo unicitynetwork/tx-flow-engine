@@ -6,9 +6,9 @@ const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
 const { Transaction } = require('./transaction.js');
 const { TxInput } = require('./tx_input.js');
-const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
+const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
-const { JSONRPCTRansport } = require('./aggregators_net/client/http_client.js');
+const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 
 async function mint({
     token_id,
@@ -47,8 +47,7 @@ async function createTx(token, destPointer, salt, secret, transport){
     const stateHash = await token.state.calculateStateHash();
     const payload = await calculatePayload(token.state, destPointer, salt);
     const signer = getTxSigner(secret, token.state.challenge.nonce);
-    const hasher = new SHA256Hasher();
-    const provider = new UnicityProvider(transport, signer, hasher);
+    const provider = new UnicityProvider(transport, signer);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
     const input = new TxInput(path, destPointer, salt);
@@ -85,7 +84,6 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 async function getTokenStatus(token, secret, transport){
     const stateHash = await token.state.calculateStateHash();
     const signer = getTxSigner(secret, token.state.challenge.nonce);
-    const hasher = new SHA256Hasher();
     const provider = new UnicityProvider(transport, signer, hasher);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
@@ -112,7 +110,7 @@ async function collectTokens(tokens, tokenClass, targetValue, secret, transport)
 }
 
 async function getHTTPTransport(url){
-    return new JSONRPCTRansport(url);
+    return new JSONRPCTransport(url);
 }
 
 module.exports = {

@@ -1,13 +1,36 @@
 const path = require('path');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
 module.exports = {
-    entry: './state_machine.js', // Path to your main file exposing the API functions
+    entry: './state_machine.js', // Replace with your main entry file
     output: {
         filename: 'txf.min.js',
         path: path.resolve(__dirname, 'dist'),
-        library: 'TXF', // The global variable name for your API in the browser
-        libraryTarget: 'umd', // Universal Module Definition for compatibility
+        library: 'TXF', // The global variable for your library
+        libraryTarget: 'umd', // UMD format for browser and Node.js compatibility
+        globalObject: 'this', // Ensures compatibility in browser and Node.js
     },
-    mode: 'production', // Minifies the output
-    target: 'web', // Ensures compatibility with browser environment
+    mode: 'development', // Minifies the output
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env'],
+                    },
+                },
+            },
+        ],
+    },
+    resolve: {
+        fullySpecified: false, // Resolves mixed module types (CommonJS/ESM)
+	fallback: {
+            buffer: require.resolve('buffer/'),
+        },
+    },
+    target: ['web', 'es5'], // Ensures browser and ES5 compatibility
+    plugins: [new NodePolyfillPlugin()],
 };
