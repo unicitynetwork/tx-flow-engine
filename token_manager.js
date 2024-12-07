@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { mint, importFlow, exportFlow, createTx, collectTokens } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
-const { SHA256Hasher } = require('./aggregators_net/hasher/sha256hasher.js');
+const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
@@ -26,7 +26,7 @@ function to256BitHex(value) {
   if (isValid256BitHex(value)) {
     return value.toLowerCase();
   } else if (typeof value === 'string') {
-    return crypto.createHash('sha256').update(value).digest('hex');
+    return hash(value);
   } else {
     throw new Error(`Invalid input: ${value}`);
   }
@@ -86,7 +86,6 @@ program
     const destPointer = options.dest;
     const salt = generateRandom256BitHex();
 
-    const hasher = new SHA256Hasher();
     const transport = new JSONRPCTransport(provider_url);
     const tx = await createTx(token, destPointer, salt, secret, transport);
     console.log(exportFlow(token, tx, true));
