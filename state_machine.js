@@ -1,6 +1,8 @@
 "use strict";
+const { DEFAULT_LOCAL_GATEWAY } = require('./constants.js');
 const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
-     calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner, isUnspent, confirmOwnership } = require('./helper.js');
+     calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner, isUnspent, confirmOwnership,
+    validateOrConvert, generateRandom256BitHex } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
@@ -109,8 +111,12 @@ async function collectTokens(tokens, tokenClass, targetValue, secret, transport)
     return { totalValue, tokens: filteredTokens, stats: filteredTokenStats }
 }
 
-async function getHTTPTransport(url){
+function getHTTPTransport(url){
     return new JSONRPCTransport(url);
+}
+
+function defaultGateway(){
+    return DEFAULT_LOCAL_GATEWAY;
 }
 
 module.exports = {
@@ -121,5 +127,8 @@ module.exports = {
     exportFlow,
     importFlow,
     collectTokens,
-    getHTTPTransport
+    getHTTPTransport,
+    validateOrConvert, 
+    generateRandom256BitHex,
+    defaultGateway
 }

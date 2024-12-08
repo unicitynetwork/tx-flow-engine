@@ -5,6 +5,8 @@ const { hash } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Hashe
 const { SignerEC } = require("./aggregators_net/signer/SignerEC.js");
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 
+const CryptoJS = require('crypto-js');
+
 const MINT_SUFFIX_HEX = hash('TOKENID');
 const MINTER_SECRET = 'I_AM_UNIVERSAL_MINTER_FOR_';
 
@@ -113,6 +115,34 @@ function splitStdin(data){
     return result;
 }
 
+function isValid256BitHex(value) {
+  const hexRegex = /^[0-9a-fA-F]{64}$/; // 64 hex chars = 256 bits
+  return hexRegex.test(value);
+}
+
+function to256BitHex(value) {
+  if (isValid256BitHex(value)) {
+    return value.toLowerCase();
+  } else if (typeof value === 'string') {
+    return hash(value);
+  } else {
+    throw new Error(`Invalid input: ${value}`);
+  }
+}
+
+// Wrapper to validate/convert parameters
+function validateOrConvert(paramName, value) {
+  try {
+    return to256BitHex(value);
+  } catch (error) {
+    throw new Error(`${paramName} must be a valid 256-bit hex or convertible string. Error: ${error.message}`);
+  }
+}
+
+function generateRandom256BitHex() {
+    return CryptoJS.lib.WordArray.random(32).toString(CryptoJS.enc.Hex);
+}
+
 module.exports = {
     calculateGenesisStateHash,
     calculateStateHash,
@@ -127,5 +157,7 @@ module.exports = {
     getTxSigner,
     isUnspent,
     getStdin,
-    splitStdin
+    splitStdin,
+    validateOrConvert,
+    generateRandom256BitHex
 }

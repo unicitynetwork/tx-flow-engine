@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: row;
+            width: 100%;
+            height: 100%;
+        }
+        .panel {
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            margin: 5px;
+        }
+        .left-panel, .right-panel {
+            width: 20%;
+        }
+        .center-panel {
+            width: 60%;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+        }
+        input {
+            width: calc(100% - 10px);
+            margin: 5px 0;
+        }
+        button {
+            width: 100%;
+            margin: 5px 0;
+            padding: 10px;
+        }
+        h3 {
+            margin: 0;
+            margin-bottom: 10px;
+        }
+        .field {
+            margin-bottom: 10px;
+        }
+        .field input {
+            width: calc(100% - 10px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel -->
+        <div class="left-panel panel">
+            <h3>Token State</h3>
+            <div class="field">
+                <label for="tokenId">Token ID:</label>
+                <input type="text" id="tokenId" readonly>
+            </div>
+            <div class="field">
+                <label for="tokenClass">Token Class:</label>
+                <input type="text" id="tokenClass" readonly>
+            </div>
+            <div class="field">
+                <label for="pubkey">Public Key:</label>
+                <input type="text" id="pubkey" readonly>
+            </div>
+            <div class="field">
+                <label for="nonce">Nonce:</label>
+                <input type="text" id="nonce" readonly>
+            </div>
+        </div>
+
+        <!-- Center Panel -->
+        <div class="center-panel panel">
+            <textarea id="jsonArea" placeholder="JSON TXF"></textarea>
+            <button onclick="clearFields()">Clear</button>
+	    <hr/>
+	    <input type="password" id="userSecret" name="userSecret" placeholder="You wallet secret">
+        </div>
+
+        <!-- Right Panel -->
+        <div class="right-panel panel">
+            <h3>Actions</h3>
+            <div>
+                <button onclick="mintHandler()">New</button>
+                <input type="text" id="newTokenClass" value="unicity_test_coin">
+                <input type="text" id="newValue" value="1000000000000000000">
+            </div>
+            <div>
+                <button onclick="importHandler()">Import</button>
+                <input type="text" id="importNonce" placeholder="1011">
+            </div>
+            <div>
+                <button onclick="sendHandler()">Send</button>
+                <input type="text" id="pointer" placeholder="0000000000000000000000000000000000000000000000000000000000000000">
+            </div>
+        </div>
+    </div>
+
+    <script src="txf.min.js"></script>
+    <script>
+        async function mintHandler() {
+	    const transport = TXF.getHTTPTransport(TXF.defaultGateway());
+	    const secret = document.getElementById("userSecret").value;
+	    const tokenId = TXF.generateRandom256BitHex();
+            const tokenClass = document.getElementById("newTokenClass").value;
+            const value = document.getElementById("newValue").value;
+	    const nonce = TXF.generateRandom256BitHex();
+	    const salt = TXF.generateRandom256BitHex();
+	    const token = await TXF.mint({
+		token_id: tokenId, token_class_id: tokenClass, token_value: value, secret, nonce, mint_salt: salt,
+		sign_alg: 'secp256k1', hash_alg: 'sha256', transport
+	    });
+	    const json = TXF.exportFlow(token, null, true);
+            document.getElementById("jsonArea").value = json;
+            updatePanels(json);
+        }
+
+        function importHandler() {
+            const nonce = document.getElementById("importNonce").value;
+            const jsonArea = document.getElementById("jsonArea");
+            let json;
+            try {
+                json = JSON.parse(jsonArea.value);
+                json.token.nonce = nonce;
+                jsonArea.value = JSON.stringify(json, null, 4);
+                updatePanels(json);
+            } catch (e) {
+                alert("Invalid JSON in the text area");
+            }
+        }
+
+        function sendHandler() {
+            const pointer = document.getElementById("pointer").value;
+            const jsonArea = document.getElementById("jsonArea");
+            let json;
+            try {
+                json = JSON.parse(jsonArea.value);
+                json.token.mintRequest = { destPointer: pointer };
+                jsonArea.value = JSON.stringify(json, null, 4);
+                updatePanels(json);
+            } catch (e) {
+                alert("Invalid JSON in the text area");
+            }
+        }
+
+        function clearFields() {
+            document.getElementById("jsonArea").value = "";
+            document.getElementById("tokenId").value = "";
+            document.getElementById("tokenClass").value = "";
+            document.getElementById("pubkey").value = "";
+            document.getElementById("nonce").value = "";
+            document.getElementById("newTokenClass").value = "";
+            document.getElementById("newValue").value = "";
+            document.getElementById("importNonce").value = "";
+            document.getElementById("pointer").value = "";
+        }
+
+        async function updatePanels(json) {
+            try {
+		console.log(json);
+                const token = (await TXF.importFlow(json)) || {};
+		console.log(JSON.stringify(token, null, 4));
+                document.getElementById("tokenId").value = token.tokenId || "";
+                document.getElementById("tokenClass").value = token.tokenClass || "";
+                document.getElementById("pubkey").value = (token.state || {}).challenge?.pubkey || "";
+                document.getElementById("nonce").value = (token.state || {}).challenge?.nonce || "";
+            } catch (e) {
+                console.error("Error updating panels", e);
+            }
+        }
+
+        document.getElementById("jsonArea").addEventListener("input", () => {
+            const jsonArea = document.getElementById("jsonArea");
+            try {
+                const json = JSON.parse(jsonArea.value);
+                updatePanels(json);
+            } catch (e) {
+                // Invalid JSON, ignore
+            }
+        });
+    </script>
+</body>
+</html>
