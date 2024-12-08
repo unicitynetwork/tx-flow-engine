@@ -130,5 +130,6 @@ module.exports = {
     getHTTPTransport,
     validateOrConvert, 
     generateRandom256BitHex,
-    defaultGateway
+    defaultGateway,
+    calculatePointer
 }
