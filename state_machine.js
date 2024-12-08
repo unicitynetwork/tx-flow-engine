@@ -86,7 +86,7 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 async function getTokenStatus(token, secret, transport){
     const stateHash = await token.state.calculateStateHash();
     const signer = getTxSigner(secret, token.state.challenge.nonce);
-    const provider = new UnicityProvider(transport, signer, hasher);
+    const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
     const { id, classId, value } = token.getStats();
@@ -126,6 +126,7 @@ module.exports = {
     importTx,
     exportFlow,
     importFlow,
+    getTokenStatus,
     collectTokens,
     getHTTPTransport,
     validateOrConvert, 

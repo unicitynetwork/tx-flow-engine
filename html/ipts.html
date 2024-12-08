@@ -59,23 +59,35 @@
     <div class="container">
         <!-- Left Panel -->
         <div class="left-panel panel">
-            <h3>Token State</h3>
-            <div class="field">
-                <label for="tokenId">Token ID:</label>
-                <input type="text" id="tokenId" readonly>
-            </div>
-            <div class="field">
-                <label for="tokenClass">Token Class:</label>
-                <input type="text" id="tokenClass" readonly>
-            </div>
-            <div class="field">
-                <label for="pubkey">Public Key:</label>
-                <input type="text" id="pubkey" readonly>
-            </div>
-            <div class="field">
-                <label for="nonce">Nonce:</label>
-                <input type="text" id="nonce" readonly>
-            </div>
+	    <div>
+        	<h3>Token State</h3>
+        	<div class="field">
+            	    <label for="tokenId">Token ID:</label>
+            	    <input type="text" id="tokenId" readonly>
+        	</div>
+        	<div class="field">
+            	    <label for="tokenClass">Token Class:</label>
+            	    <input type="text" id="tokenClass" readonly>
+        	</div>
+        	<div class="field">
+            	    <label for="pubkey">Public Key:</label>
+            	    <input type="text" id="pubkey" readonly>
+        	</div>
+        	<div class="field">
+            	    <label for="nonce">Nonce:</label>
+            	    <input type="text" id="nonce" readonly>
+        	</div>
+		<div class="field">
+            	    <label for="value">Value:</label>
+            	    <input type="text" id="value" readonly>
+        	</div>
+	    </div>
+	    <hr/>
+	    <div>
+		<h3>Token Status</h3>
+		<div id="status"></div>
+		<button onclick="updateStatus()">Check</button>
+	    </div>
         </div>
 
         <!-- Center Panel -->
@@ -203,10 +215,34 @@
                 document.getElementById("tokenClass").value = token.tokenClass || "";
                 document.getElementById("pubkey").value = (token.state || {}).challenge?.pubkey || "";
                 document.getElementById("nonce").value = (token.state || {}).challenge?.nonce || "";
+		await updateStatus();
             } catch (e) {
                 console.error("Error updating panels", e);
             }
         }
+
+	async function updateStatus() {
+	    const transport = TXF.getHTTPTransport(TXF.defaultGateway());
+	    const json = document.getElementById("jsonArea").value;
+	    const token = (await TXF.importFlow(json)) || {};
+	    const secret = document.getElementById("userSecret").value;
+
+	    const status = await TXF.getTokenStatus(token, secret, transport);
+	    console.log(status);
+	    document.getElementById("value").value = status.value;
+	    if(status.owned){
+		if(status.unspent){
+		    document.getElementById("status").innerText = "SPENDABLE";
+		    document.getElementById("status").style.color = "GREEN";
+		}else{
+		    document.getElementById("status").innerText = "SPENT";
+		    document.getElementById("status").style.color = "RED";
+		}
+	    }else{
+		document.getElementById("status").innerText = "NOT OWNED";
+		document.getElementById("status").style.color = "GRAY";
+	    }
+	}
 
         document.getElementById("jsonArea").addEventListener("input", () => {
             const jsonArea = document.getElementById("jsonArea");
