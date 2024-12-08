@@ -1,5 +1,5 @@
 "use strict";
-const { DEFAULT_LOCAL_GATEWAY } = require('./constants.js');
+const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY } = require('./constants.js');
 const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
      calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner, isUnspent, confirmOwnership,
     validateOrConvert, generateRandom256BitHex } = require('./helper.js');
@@ -116,7 +116,7 @@ function getHTTPTransport(url){
 }
 
 function defaultGateway(){
-    return DEFAULT_LOCAL_GATEWAY;
+    return DEFAULT_TEST_GATEWAY;
 }
 
 module.exports = {
