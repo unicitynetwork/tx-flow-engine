@@ -2,9 +2,35 @@
 This is offchain token transaction framework. It follows the paradigm, where toknes are being managed, stored and transferred offchain (on users' premises or in cloud, outside of the blockchain ledger) and single-spend proofs only are being generated on-chain. 
 Here, token is a stand-alone entity containing all the info and cryptographic proofs attesting current token's state (like, ownership, value, etc.). Token's state change is accompanied by consulting with the blockchain infrastructure (Unicity) that should produce the proof of single spend of the token from its current 
  cryptographically verifiable statement that the given source state has been changed to a new given state and there were no other transitions from the source state before. Cryptographic commitments about the token spent contain no info about the token, its initial state and 
-its destination state as well as no info abou the nature of the transaction itself. I.e., when someone observes traffic between clients and Unicity infrastructure, it is not possible to say whether submited commitments refer to token transactions or to some 
-completely other kinds of processes. All the transaction commitments are being aggregated into global distributed hash tree data structure rooted in the Unicity blockchain. In this manner, we have horizontally scalable on-demand blockchain infrastructure capable
+its destination state as well as no info about the nature of the transaction itself. I.e., when someone observes traffic between clients and Unicity infrastructure, it is not possible to say whether submited commitments refer to token transactions or to some 
+completely other kinds of processes. All the transaction commitments are being aggregated into global distributed hash tree data structure rooted in the Unicity blockchain. In this manner, we have horizontally scalable on-demand blockchain infrastructure capable for
 accomodating millions of transaction commitments per block.
+
+## Web GUI interface
+[Token GUI stand-alone page](https://unicitynetwork.github.io/tx-flow-engine/)
+### Mint token:
+ - Set the password to lock up the token to be minted (central panel, field `Secret`)
+ - Set the token type (or leave default `unicity_test_coin`) in he field under button `New`, right pannel
+ - Set the token value (or leave default 1000000000000000000) in the field below token type below button `New`, right pannel
+ - Push button `New` and wait few seconds for getting the single-spend proof (unicity certificate) from the unicity gateway "https://gateway-test1.unicity.network:443". The central text field will be populated with the JSON document containing the token and the left pannel will get the token info extracted from the JSON document. You can push button `Check` in the left pannel to check current token status for the given token and given password ('Secret' field)
+
+### Recipient pointer:
+A recipient must generate the pointer to which the token ownership must be changed.
+ - Set the password to lock up the token expected to be received (central panel, field `Secret`)
+ - Push `Generate Pointer/Nonce` button. Share the pointer with the sender, keep the Nonce in order to "import" the token when received
+
+### Send token:
+ - Set the password to unlock the token for sending (central panel, field `Secret`)
+ - Set the pointer obtained from the recipient in the field below `Send` button, right field
+ - Push `Send` button
+ - When the JSON document gets updated in few seconds after "talking" to the unicity gateway (check that the `transaction` field is non-empty), copy the JSON document and send it with whichever means to the recipient (a messenger, email, flash drive, etc.)
+
+### Receive token:
+When the recipient gets the JSON document containing the token, the transaction field in the document must be resolved into the transition, the ownership info gets updated and locked to the recipient password
+ - Set the password to lock up the token received (central panel, field `Secret`)
+ - Set the `Nonce` into the field below the `Import` button, right panel
+ - Push `Import` button, wait till the token status on the left panel gets updated to "Spendable" in few seconds
+ - Congrats! You have successfuly received the token!
 
 ## Setup instructions
  - Fetch the project: `git clone --recurse-submodules https://github.com/unicitynetwork/tx-flow-engine.git`
