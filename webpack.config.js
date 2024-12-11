@@ -6,7 +6,7 @@ module.exports = {
     entry: './state_machine.js', // Replace with your main entry file
     output: {
         filename: 'txf.min.js',
-        path: path.resolve(__dirname, 'html'),
+        path: path.resolve(__dirname, 'docs'),
         library: 'TXF', // The global variable for your library
         libraryTarget: 'umd', // UMD format for browser and Node.js compatibility
         globalObject: 'this', // Ensures compatibility in browser and Node.js
