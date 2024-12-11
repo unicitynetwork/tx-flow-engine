@@ -30,7 +30,7 @@ When the recipient gets the JSON document containing the token, the transaction 
  - Set the password to lock up the token received (central panel, field `Secret`)
  - Set the `Nonce` into the field below the `Import` button, right panel
  - Push `Import` button, wait till the token status on the left panel gets updated to "Spendable" in few seconds
- - Congrats! You have successfuly received the token!
+ - Congrats! You have successfuly received the token! Do not forget to save the JSON document for future use (local disk, cloud, etc.). It is safe to store the token locked by the password on a public media, though not good for the confidentiality.
 
 ## Setup instructions
  - Fetch the project: `git clone --recurse-submodules https://github.com/unicitynetwork/tx-flow-engine.git`
