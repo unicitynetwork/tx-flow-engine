@@ -2,7 +2,7 @@
 "use strict";
 const { Command } = require('commander');
 //const crypto = require('crypto');
-const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, generateRecipientPubkeyrAddr } = require('./state_machine.js');
+const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, generateRecipientPubkeyAddr } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
 const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
@@ -84,7 +84,7 @@ program
   .description('Generate a pubkey address')
   .action(async (options) => {
 //    try {
-      console.log(generateRecipientPubkeyrAddr(secret));
+      console.log(generateRecipientPubkeyAddr(secret));
 //    } catch (error) {
 //      console.error(error.message);
 //    }

@@ -45,7 +45,7 @@ function generateRecipientPointerAddr(token_class_id, sign_alg, hash_alg, secret
     return calculatePubPointer(calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}));
 }
 
-function generateRecipientPubkeyrAddr(secret){
+function generateRecipientPubkeyAddr(secret){
     return calculatePubAddr(calculatePubkey(secret));
 }
 
@@ -95,7 +95,7 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 
 async function getTokenStatus(token, secret, transport){
     const stateHash = await token.state.calculateStateHash();
-    const signer = getTxSigner(secret, token.state.challenge.nonce);
+    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
@@ -132,7 +132,7 @@ function defaultGateway(){
 module.exports = {
     mint,
     generateRecipientPointerAddr,
-    generateRecipientPubkeyrAddr,
+    generateRecipientPubkeyAddr,
     createTx,
     importTx,
     exportFlow,
