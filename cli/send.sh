@@ -28,8 +28,8 @@ fi
 # Get the selected file
 selected_file="${files[$((choice - 1))]}"
 
-# Prompt for destination pointer
-read -p "Enter Destination Pointer: " destination_pointer
+# Prompt for destination address
+read -p "Enter Destination Address: " destination_address
 
 read -sp "Enter User Secret: " user_secret
 echo
@@ -38,7 +38,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command with the selected file as stdin
-if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_pointer"); then
+if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_address"); then
     # Rename the file after successful execution
     timestamp=$(date +%s)
     new_filename="${selected_file}.spent.${timestamp}"
@@ -52,7 +52,7 @@ if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_
     echo "$output" > "$selected_file"
 
     # Provide feedback to the user
-    echo "Token was spent successfully using transaction flow file $selected_file to destination $destination_pointer."
+    echo "Token was spent successfully using transaction flow file $selected_file to destination $destination_address."
     echo "File $selected_file was updated with the new transaction, but cannot be spent till the destination pointer is resolved into the full state."
     echo "Old transaction flow file is invalid now (unicity will not confirm spend from the old state anymore) and was archived into $new_filename"
 else

@@ -2,11 +2,11 @@
 
 class Transaction {
 
-    constructor(tokenId, source, input, destPointer){
+    constructor(tokenId, source, input, dest_ref){
 	this.tokenId = tokenId;
 	this.source = source;
 	this.input = input;
-	this.destPointer = destPointer;
+	this.dest_ref = dest_ref;
     }
 
 }

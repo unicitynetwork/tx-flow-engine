@@ -2,9 +2,9 @@
 
 class TxInput{
 
-    constructor(path, destPointer, salt){
+    constructor(path, dest_ref, salt){
 	this.path = path;
-	this.destPointer = destPointer;
+	this.dest_ref = dest_ref;
 	this.salt = salt;
     }
 

@@ -34,6 +34,40 @@ function calculateExpectedPointer({token_class_id, sign_alg, hash_alg, pubkey, n
     return hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
 }
 
+function calculatePointerFromPubKey({token_class_id, sign_alg, hash_alg, secret, salt, sourceState}){
+    const signer = getTxSigner(secret);
+    const pubkey = signer.publicKey;
+    const signAlgCode = hash(sign_alg);
+    const hashAlgCode = hash(hash_alg);
+    const signature = signer.sign(salt);
+    const nonce=hash(sourceState+signature);
+    return { pointer: hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce), signature };
+}
+
+function calculateExpectedPointerFromPubAddr({token_class_id, sign_alg, hash_alg, pubkey, salt, signature, nonce, sourceState}){
+    if(!SignerEC.verify(pubkey, salt, signature))
+	throw new Error("Salt was not signed correctly");
+
+    const signAlgCode = hash(sign_alg);
+    const hashAlgCode = hash(hash_alg);
+    if(hash(sourceState+signature) !== nonce)
+	throw new Error("Nonce was not derived correctly");
+    return hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
+}
+
+function calculatePubkey(secret){
+    const signer = getTxSigner(secret);
+    return signer.publicKey;
+}
+
+function calculatePubAddr(pubkey){
+    return 'pub'+pubkey;
+}
+
+function calculatePubPointer(pointer){
+    return 'point'+pointer;
+}
+
 async function calculateGenesisRequestId(tokenId){
     const minterSigner = getMinterSigner(tokenId);
     const minterPubkey = await minterSigner.getPubKey();
@@ -50,6 +84,14 @@ async function calculatePayload(source, destPointer, salt){
     return hash((await source.challenge.getHexDigest())+destPointer+salt);
 }
 
+function resolveReference(dest_ref){
+    if(dest_ref.startsWith('point'))
+	return { pointer: dest_ref.substring(5) };
+    if(dest_ref.startsWith('pub'))
+	return { pubkey: dest_ref.substring(3) };
+    return dest_ref;
+}
+
 function getMinterSigner(tokenId){
     return new SignerEC(hash(MINTER_SECRET+tokenId));
 }
@@ -60,7 +102,9 @@ function getMinterProvider(transport, tokenId){
 }
 
 function getTxSigner(secret, nonce){ // Changed
-    return new SignerEC(hash(secret+nonce));
+    if(nonce)return new SignerEC(hash(secret+nonce));
+    else
+	return new SignerEC(hash(secret));
 }
 
 async function isUnspent(provider, state){
@@ -132,6 +176,8 @@ function to256BitHex(value) {
 
 // Wrapper to validate/convert parameters
 function validateOrConvert(paramName, value) {
+  if(!value)return;
+  if(value === '')return;
   try {
     return to256BitHex(value);
   } catch (error) {
@@ -151,6 +197,11 @@ module.exports = {
     calculateGenesisRequestId,
     calculateMintPayload,
     calculatePayload,
+    calculateExpectedPointerFromPubAddr,
+    calculatePubAddr,
+    calculatePubPointer,
+    calculatePubkey,
+    resolveReference,
     confirmOwnership,
     getMinterSigner,
     getMinterProvider,

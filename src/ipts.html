@@ -94,6 +94,7 @@
         <div class="center-panel panel">
             <textarea id="jsonArea" placeholder="JSON TXF"></textarea>
 	    <hr/>
+	    PubkeyAddr: <span id="pubkeyAddr"></span>
 	    <div class="field">
 		<label for="secret">Secret:</label>
 		<input type="password" id="userSecret" name="userSecret" placeholder="Your wallet secret">
@@ -186,8 +187,7 @@
 	    const secret = document.getElementById("userSecret").value;
 	    const tokenClass = TXF.validateOrConvert('token_class', document.getElementById("requestedTokenClass").value);
 	    const nonce = TXF.generateRandom256BitHex();
-	    const pointer = await TXF.calculatePointer({token_class_id: tokenClass, sign_alg: 'secp256k1', hash_alg: 'sha256',
-		secret, nonce});
+	    const pointer = await TXF.generateRecipientPointerAddr(tokenClass, 'secp256k1', 'sha256', secret, nonce);
 	    document.getElementById("requestedPointer").value = pointer;
 	    document.getElementById("requestedNonce").value = nonce;
 	}
@@ -251,6 +251,12 @@
                 // Invalid JSON, ignore
             }
         });
+
+	document.getElementById("userSecret").addEventListener("input", () => {
+	    const secret = document.getElementById("userSecret").value;
+	    const pubkeyAddr = TXF.generateRecipientPubkeyAddr(secret);
+	    document.getElementById("pubkeyAddr").innerText = pubkeyAddr;
+	});
     </script>
 </body>
 </html>

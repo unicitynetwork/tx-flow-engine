@@ -2,7 +2,7 @@
 "use strict";
 const { Command } = require('commander');
 //const crypto = require('crypto');
-const { mint, importFlow, exportFlow, createTx, collectTokens } = require('./state_machine.js');
+const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, generateRecipientPubkeyAddr } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
 const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
@@ -32,7 +32,7 @@ program
   .requiredOption('--token_value <token_value>', 'Value of the token (any string)')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
-    try {
+//    try {
       const token_id = validateOrConvert('token_id', options.token_id);
       const token_class = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
@@ -41,9 +41,9 @@ program
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
       console.log(exportFlow(token, null, true));
-    } catch (error) {
-      console.error(error.message);
-    }
+//    } catch (error) {
+//      console.error(error.message);
+//    }
   });
 
 // Send command
@@ -64,18 +64,30 @@ program
 // Pointer command
 program
   .command('pointer')
-  .description('Generate a pointer')
+  .description('Generate a pointer address')
   .requiredOption('--token_class <token_class>', 'Class of the token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
-    try {
+//    try {
       const token_class_id = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
 
-      console.log(await calculatePointer({token_class_id, sign_alg: 'secp256k1', hash_alg: 'sha256', secret, nonce}));
-    } catch (error) {
-      console.error(error.message);
-    }
+      console.log(generateRecipientPointerAddr(token_class_id, 'secp256k1', 'sha256', secret, nonce));
+//    } catch (error) {
+//      console.error(error.message);
+//    }
+  });
+
+// Pubkey command
+program
+  .command('pubkey')
+  .description('Generate a pubkey address')
+  .action(async (options) => {
+//    try {
+      console.log(generateRecipientPubkeyAddr(secret));
+//    } catch (error) {
+//      console.error(error.message);
+//    }
   });
 
 // Receive command
@@ -84,7 +96,7 @@ program
   .description('Receive a token')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
-    try {
+//    try {
       const nonce = validateOrConvert('nonce', options.nonce);
       const flowJson = await getStdin();
       const flow = JSON.parse(flowJson);
@@ -92,9 +104,9 @@ program
       const token = await importFlow(flowJson, secret, nonce);
 
       console.log(exportFlow(token, null, true));
-    } catch (error) {
-      console.error(error.message);
-    }
+//    } catch (error) {
+//      console.error(error.message);
+//    }
   });
 
 // Summarize all owned tokens
@@ -103,7 +115,7 @@ program
   .description('Summarize all owned tokens')
   .requiredOption('--token_class <token_class>', 'Class of the token')
   .action(async (options) => {
-    try {
+//    try {
       const tokenClass = validateOrConvert('token_class', options.token_class);
       const flowJsons = splitStdin(await getStdin());
 
@@ -126,9 +138,9 @@ program
       for(const name in tokenUrls)
 	if(collection.tokens[name])
 	    console.log(name+": "+tokenUrls[name]);
-      } catch (error) {
-        console.error(error.message);
-    }
+//      } catch (error) {
+//        console.error(error.message);
+//    }
   });
 
 

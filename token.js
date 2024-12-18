@@ -5,7 +5,7 @@ const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Transition } = require('./transition.js');
-const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, calculateExpectedPointer } = require('./helper.js');
+const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, calculateExpectedPointer, resolveReference } = require('./helper.js');
 
 class Token {
 
@@ -32,12 +32,12 @@ class Token {
 		ChallengePubkey(this.transitions[i].source.challenge.tokenClass, this.transitions[i].source.challenge.tokenId,
 		this.transitions[i].source.challenge.sign_alg, 
 		this.transitions[i].source.challenge.hash_alg, this.transitions[i].source.challenge.pubkey, 
-		this.transitions[i].source.challenge.nonce));
+		this.transitions[i].source.challenge.nonce), this.transitions[i].source.aux);
 	    const destination = new State(new 
 		ChallengePubkey(this.transitions[i].destination.challenge.tokenClass, this.transitions[i].destination.challenge.tokenId,
 		this.transitions[i].destination.challenge.sign_alg, 
 		this.transitions[i].destination.challenge.hash_alg, this.transitions[i].destination.challenge.pubkey, 
-		this.transitions[i].destination.challenge.nonce));
+		this.transitions[i].destination.challenge.nonce), this.transitions[i].destination.aux);
 	    this.transitions[i] = new Transition(this.transitions[i].tokenId, source, this.transitions[i].input, 
 		destination);
 	    await this.updateState(this.transitions[i]);
@@ -51,7 +51,8 @@ class Token {
 	    new ChallengePubkey(
 		tx.source.challenge.tokenClass, tx.source.challenge.tokenId, tx.source.challenge.sign_alg, tx.source.challenge.hash_alg, tx.source.challenge.pubkey,
 		tx.source.challenge.nonce
-	    )
+	    ),
+	    tx.source.aux
 	);
 	const transition = new Transition(tx.tokenId, tx_source, tx.input, destination);
 	await this.updateState(transition);
@@ -78,9 +79,10 @@ class Token {
 	    pubkey: this.genesis.challenge.pubkey,
 	    nonce: this.genesis.challenge.nonce
 	});
-	if(this.mintRequest.destPointer != expectedDestPointer)return DEST_MISMATCH;
+	const destPointer = resolveReference(this.mintRequest.dest_ref).pointer;
+	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = await calculateMintPayload(this.tokenId, this.tokenClass,
-	    this.tokenValue, this.mintRequest.destPointer, this.mintSalt);
+	    this.tokenValue, this.mintRequest.dest_ref, this.mintSalt);
 	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
     }

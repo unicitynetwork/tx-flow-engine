@@ -1,8 +1,8 @@
 "use strict";
 const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY } = require('./constants.js');
 const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
-     calculateMintPayload, getMinterProvider, calculatePayload, getTxSigner, isUnspent, confirmOwnership,
-    validateOrConvert, generateRandom256BitHex } = require('./helper.js');
+     calculateMintPayload, resolveReference, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
+    getTxSigner, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
@@ -26,9 +26,9 @@ async function mint({
     const signer = getTxSigner(secret, nonce);
     const pubkey = signer.getPubKey();
     const stateHash = await calculateGenesisStateHash(token_id);
-    const destPointer = await calculateExpectedPointer({token_class_id, sign_alg,
-	hash_alg, pubkey, nonce});
-    const payload = await calculateMintPayload(token_id, token_class_id, token_value, destPointer,
+    const destPointerAddr = calculatePubPointer(await calculateExpectedPointer({token_class_id, sign_alg,
+	hash_alg, pubkey, nonce}));
+    const payload = await calculateMintPayload(token_id, token_class_id, token_value, destPointerAddr,
 	mint_salt);
     const mintProvider = getMinterProvider(transport, token_id);
     const { requestId, result } = await mintProvider.submitStateTransition(stateHash, payload);
@@ -36,24 +36,28 @@ async function mint({
 
     const init_state = new State(new ChallengePubkey(token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce));
     const token = new Token({token_id, token_class_id, token_value, mint_proofs: { path },
-	mint_request: { destPointer }, mint_salt, init_state, transitions: [] });
+	mint_request: { dest_ref: destPointerAddr }, mint_salt, init_state, transitions: [] });
     await token.init();
     return token;
 }
 
-function generateRecipientPointer(token_class_id, sign_alg, hash_alg, secret, nonce){
-    return calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce});
+function generateRecipientPointerAddr(token_class_id, sign_alg, hash_alg, secret, nonce){
+    return calculatePubPointer(calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}));
 }
 
-async function createTx(token, destPointer, salt, secret, transport){
+function generateRecipientPubkeyAddr(secret){
+    return calculatePubAddr(calculatePubkey(secret));
+}
+
+async function createTx(token, dest_ref, salt, secret, transport){
     const stateHash = await token.state.calculateStateHash();
-    const payload = await calculatePayload(token.state, destPointer, salt);
-    const signer = getTxSigner(secret, token.state.challenge.nonce);
+    const payload = await calculatePayload(token.state, dest_ref, salt);
+    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
-    const input = new TxInput(path, destPointer, salt);
-    return new Transaction(token.tokenId, token.state, input, destPointer);
+    const input = new TxInput(path, dest_ref, salt);
+    return new Transaction(token.tokenId, token.state, input, dest_ref);
 }
 
 function importTx(token, tx, destination){
@@ -73,11 +77,17 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 	transitions: flow.token.transitions});
     await token.init();
     if(flow.transaction && secret){
-	if(!nonce)
+	const { pubkey } = resolveReference(flow.transaction.input.dest_ref);
+	if(!nonce && !pubkey)
 	    throw new Error("Cannot import flow with transaction: nonce of the state for the transaction is missing");
 	const signer = getTxSigner(secret, nonce);
-	const pubkey = signer.getPubKey();
-	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', pubkey, nonce));
+	const sigPubkey = signer.getPubKey();
+	if(pubkey)
+	    if(pubkey !== sigPubkey)
+		throw new Error("Pubkeys do not match");
+	const salt_sig = pubkey?signer.sign(flow.transaction.input.salt):undefined;
+	const source = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', flow.transaction.source.challenge.pubkey, flow.transaction.source.challenge.nonce), flow.transaction.source.aux);
+	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), salt_sig?{salt_sig}:undefined);
 	await token.applyTx(flow.transaction, destination);
     }
     return token;
@@ -85,7 +95,7 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 
 async function getTokenStatus(token, secret, transport){
     const stateHash = await token.state.calculateStateHash();
-    const signer = getTxSigner(secret, token.state.challenge.nonce);
+    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
@@ -121,7 +131,8 @@ function defaultGateway(){
 
 module.exports = {
     mint,
-    generateRecipientPointer,
+    generateRecipientPointerAddr,
+    generateRecipientPubkeyAddr,
     createTx,
     importTx,
     exportFlow,

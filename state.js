@@ -2,8 +2,9 @@
 
 class State {
 
-    constructor(challenge) {
+    constructor(challenge, aux) {
 	this.challenge = challenge;
+	this.aux = aux;
     }
 
     calculateStateHash(){
