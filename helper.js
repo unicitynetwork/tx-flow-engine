@@ -159,6 +159,11 @@ function splitStdin(data){
     return result;
 }
 
+function getPubKey(secret){
+    const signer = getTxSigner(secret);
+    return signer.getPubKey();
+}
+
 function isValid256BitHex(value) {
   const hexRegex = /^[0-9a-fA-F]{64}$/; // 64 hex chars = 256 bits
   return hexRegex.test(value);
@@ -206,6 +211,7 @@ module.exports = {
     getMinterSigner,
     getMinterProvider,
     getTxSigner,
+    getPubKey,
     isUnspent,
     getStdin,
     splitStdin,

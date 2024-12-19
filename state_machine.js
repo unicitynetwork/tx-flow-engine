@@ -2,7 +2,7 @@
 const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY } = require('./constants.js');
 const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
      calculateMintPayload, resolveReference, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
-    getTxSigner, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('./helper.js');
+    getTxSigner, getPubKey, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('./helper.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
@@ -11,6 +11,7 @@ const { TxInput } = require('./tx_input.js');
 const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
+const { TokenPool } = require('./tokenpool.js');
 
 async function mint({
     token_id,
@@ -129,6 +130,52 @@ function defaultGateway(){
     return DEFAULT_TEST_GATEWAY;
 }
 
+function getTokenPool(){
+    return new TokenPool();
+}
+
+async function createToken(secret, pool, tokenClass, tokenValue){
+    const token_id = generateRandom256BitHex();
+    const nonce = generateRandom256BitHex();
+    const token = await mint({ token_id, token_class_id: tokenClass, 
+	token_value: tokenValue, secret, nonce,  
+	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
+	transport: new JSONRPCTransport(defaultGateway())});
+    return pool.addToken(secret, exportFlow(token, null, true));
+}
+
+async function findTokens(secret, pool, tokenClass, targetValue){
+    const tokenJsons = pool.getTokens(secret);
+    let tokens = {};
+    for(let tokenId in tokenJsons){
+	tokens[tokenId] = await importFlow(tokenJsons[tokenId]);
+    }
+    return await collectTokens(tokens, tokenClass, targetValue, secret, new JSONRPCTransport(defaultGateway()));
+}
+
+async function sendTokens(secret, pool, tokenClass, targetValue, dest_ref){
+    const tokens = (await findTokens(secret, pool, tokenClass, targetValue)).tokens;
+    const flows = {};
+    for(let tokenId in tokens){
+	const token = tokens[tokenId];
+	const salt = generateRandom256BitHex();
+	const tx = await createTx(token, dest_ref, salt, secret, new JSONRPCTransport(defaultGateway()));
+	flows[tokenId] = exportFlow(token, tx, true);
+    }
+    return flows;
+}
+
+async function receiveTokens(secret, pool, tokenFlows){
+    for(let tokenId in tokenFlows){
+	const txf = tokenFlows[tokenId];
+	const tmpToken = JSON.parse(txf);
+	const nonce = pool.getNonce(tmpToken.transaction.dest_ref);
+	const token = await importFlow(txf, secret, nonce);
+	const updatedJson = exportFlow(token, null, true);
+	pool.addToken(secret, updatedJson);
+    }
+}
+
 module.exports = {
     mint,
     generateRecipientPointerAddr,
@@ -143,5 +190,10 @@ module.exports = {
     validateOrConvert, 
     generateRandom256BitHex,
     defaultGateway,
-    calculatePointer
+    calculatePointer,
+    getTokenPool,
+    createToken,
+    findTokens,
+    sendTokens,
+    receiveTokens
 }
