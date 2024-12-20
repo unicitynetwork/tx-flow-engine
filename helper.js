@@ -75,13 +75,13 @@ async function calculateGenesisRequestId(tokenId){
     return await UnicityProvider.calculateRequestId(minterPubkey, genesisState);
 }
 
-function calculateMintPayload(tokenId, tokenClass, tokenValue, destPointer, salt){
+function calculateMintPayload(tokenId, tokenClass, tokenValue, initMetaHash, destPointer, salt){
     const value = `${tokenValue.toString(16).slice(2).padStart(64, "0")}`;
-    return hash(tokenId+tokenClass+value+destPointer+salt);
+    return hash(tokenId+tokenClass+value+initMetaHash?initMetaHash:''+destPointer+salt);
 }
 
 async function calculatePayload(source, destPointer, salt){
-    return hash((await source.challenge.getHexDigest())+destPointer+salt);
+    return hash(source.calculateStateHash()+destPointer+salt);
 }
 
 function resolveReference(dest_ref){

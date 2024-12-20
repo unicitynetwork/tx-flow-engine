@@ -17,6 +17,7 @@ async function mint({
     token_id,
     token_class_id,
     token_value,
+    token_meta,
     secret,
     nonce,
     mint_salt,
@@ -29,14 +30,14 @@ async function mint({
     const stateHash = await calculateGenesisStateHash(token_id);
     const destPointerAddr = calculatePubPointer(await calculateExpectedPointer({token_class_id, sign_alg,
 	hash_alg, pubkey, nonce}));
-    const payload = await calculateMintPayload(token_id, token_class_id, token_value, destPointerAddr,
+    const payload = await calculateMintPayload(token_id, token_class_id, token_value, token_meta?hash(JSON.stringify(token_meta)):'', destPointerAddr,
 	mint_salt);
     const mintProvider = getMinterProvider(transport, token_id);
     const { requestId, result } = await mintProvider.submitStateTransition(stateHash, payload);
     const { status, path } = await mintProvider.extractProofs(requestId);
 
     const init_state = new State(new ChallengePubkey(token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce));
-    const token = new Token({token_id, token_class_id, token_value, mint_proofs: { path },
+    const token = new Token({token_id, token_class_id, token_value, token_meta, mint_proofs: { path },
 	mint_request: { dest_ref: destPointerAddr }, mint_salt, init_state, transitions: [] });
     await token.init();
     return token;
@@ -100,8 +101,8 @@ async function getTokenStatus(token, secret, transport){
     const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
-    const { id, classId, value } = token.getStats();
-    return { id, classId, value, unspent: isLatestState, owned: isOwner }
+    const { id, classId, value, meta } = token.getStats();
+    return { id, classId, value, meta, unspent: isLatestState, owned: isOwner }
 }
 
 async function collectTokens(tokens, tokenClass, targetValue, secret, transport){
