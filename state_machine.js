@@ -174,6 +174,7 @@ async function receiveTokens(secret, pool, tokenFlows){
 	const updatedJson = exportFlow(token, null, true);
 	pool.addToken(secret, updatedJson);
     }
+    return pool;
 }
 
 module.exports = {
