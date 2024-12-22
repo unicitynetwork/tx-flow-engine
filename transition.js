@@ -1,7 +1,8 @@
 "use strict";
+const objectHash = require('object-hash');
 const { calculateStateHash, calculateExpectedPointer, calculateExpectedPointerFromPubAddr, calculatePayload, resolveReference } = require('./helper.js');
 const { OK } = require('./aggregators_net/constants.js');
-const { DEST_MISMATCH, PAYLOAD_MISMATCHED } = require('./constants.js');
+const { DEST_MISMATCH, DATA_MISMATCH, PAYLOAD_MISMATCHED } = require('./constants.js');
 
 class Transition {
 
@@ -15,6 +16,7 @@ class Transition {
     async execute(){
 	const status = await this.source.challenge.verify(this.input); // unlock
 	if(status != OK)return status;
+	
 	const { pointer, pubkey } = resolveReference(this.input.dest_ref);
 	if(pubkey)
 	    if(pubkey !== this.destination.challenge.pubkey)
@@ -39,6 +41,10 @@ class Transition {
 	    this.input.dest_ref, this.input.salt);
 	if(this.input.path[this.input.path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;
 	return OK;
+    }
+
+    async validateData(){
+	if(this.input.dataHash != objectHash(this.destination.data))
     }
 
 }

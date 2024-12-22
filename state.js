@@ -3,17 +3,17 @@ const { hasher } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Has
 
 class State {
 
-    constructor(challenge, aux, meta) {
+    constructor(challenge, aux, data) {
 	this.challenge = challenge;
 	this.aux = aux;
-	this.meta = meta;
+	this.data = data;
     }
 
     calculateStateHash(){
-	if(!this.meta)
+	if(!this.data)
 	    return this.challenge.getHexDigest();
 	else
-	    return hash(this.challenge.getHexDigest()+hash(JSON.stringify(this.meta)));
+	    return hash(this.challenge.getHexDigest()+hash(JSON.stringify(this.data)));
     }
 
 }

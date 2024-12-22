@@ -9,17 +9,17 @@ const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, cal
 
 class Token {
 
-    constructor({ token_id, token_class_id, token_value, token_meta, mint_proofs, mint_request,
+    constructor({ token_id, token_class_id, token_value, token_data, mint_proofs, mint_request,
 	    mint_salt, init_state, transitions }){
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
-	this.initMetaHash = token_meta?hash(JSON.stringify(token_meta)):"";
+	this.initDataHash = token_meta?hash(JSON.stringify(token_data)):"";
 	this.mintProofs = mint_proofs;
 	this.mintRequest = mint_request;
 	this.mintSalt = mint_salt;
 	const {tokenClass, sign_alg, hash_alg, pubkey, nonce} = init_state.challenge;
-	this.genesis = new State(new ChallengePubkey(tokenClass, token_id, sign_alg, hash_alg, pubkey, nonce), undefined, token_meta);
+	this.genesis = new State(new ChallengePubkey(tokenClass, token_id, sign_alg, hash_alg, pubkey, nonce), undefined, token_data);
 	this.transitions = transitions;
     }
 
@@ -33,12 +33,13 @@ class Token {
 		ChallengePubkey(this.transitions[i].source.challenge.tokenClass, this.transitions[i].source.challenge.tokenId,
 		this.transitions[i].source.challenge.sign_alg, 
 		this.transitions[i].source.challenge.hash_alg, this.transitions[i].source.challenge.pubkey, 
-		this.transitions[i].source.challenge.nonce), this.transitions[i].source.aux, this.transitions[i].source.meta);
+		this.transitions[i].source.challenge.nonce), this.transitions[i].source.aux, this.transitions[i].source.data);
 	    const destination = new State(new 
 		ChallengePubkey(this.transitions[i].destination.challenge.tokenClass, this.transitions[i].destination.challenge.tokenId,
 		this.transitions[i].destination.challenge.sign_alg, 
 		this.transitions[i].destination.challenge.hash_alg, this.transitions[i].destination.challenge.pubkey, 
-		this.transitions[i].destination.challenge.nonce), this.transitions[i].destination.aux, this.transitions[i].destination.meta);
+		this.transitions[i].destination.challenge.nonce), this.transitions[i].destination.aux, 
+		this.transitions[i].destination.data);
 	    this.transitions[i] = new Transition(this.transitions[i].tokenId, source, this.transitions[i].input, 
 		destination);
 	    await this.updateState(this.transitions[i]);
@@ -50,11 +51,11 @@ class Token {
 	    throw new Error("Token ID in TX does not match this token ID");
 	const tx_source = new State(
 	    new ChallengePubkey(
-		tx.source.challenge.tokenClass, tx.source.challenge.tokenId, tx.source.challenge.sign_alg, tx.source.challenge.hash_alg, tx.source.challenge.pubkey,
-		tx.source.challenge.nonce
+		tx.source.challenge.tokenClass, tx.source.challenge.tokenId, tx.source.challenge.sign_alg, 
+		tx.source.challenge.hash_alg, tx.source.challenge.pubkey, tx.source.challenge.nonce
 	    ),
 	    tx.source.aux,
-	    tx.source.meta
+	    tx.source.data
 	);
 	const transition = new Transition(tx.tokenId, tx_source, tx.input, destination);
 	await this.updateState(transition);
