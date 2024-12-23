@@ -14,37 +14,37 @@ function calculateGenesisStateHash(tokenId){
     return hash(tokenId+MINT_SUFFIX_HEX);
 }
 
-function calculateStateHash({token_class_id, token_id, data, sign_alg, hash_alg, pubkey, nonce}){
+function calculateStateHash({token_class_id, token_id, sign_alg, hash_alg, data, pubkey, nonce}){
     const signAlgCode = hash(sign_alg);
     const hashAlgCode = hash(hash_alg);
-    return hash(token_class_id+signAlgCode+token_id+(data?hash(data):'')+hashAlgCode+pubkey+nonce);
+    return hash(token_class_id+signAlgCode+token_id+hashAlgCode+(data?hash(data):'')+pubkey+nonce);
 }
 
-function calculatePointer({token_class_id, data, sign_alg, hash_alg, secret, nonce}){
+function calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}){
     const signer = getTxSigner(secret, nonce);
     const pubkey = signer.publicKey;
     const signAlgCode = hash(sign_alg);
     const hashAlgCode = hash(hash_alg);
-    return hash(token_class_id+(data?hash(data):'')+signAlgCode+hashAlgCode+pubkey+nonce);
+    return hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
 }
 
-function calculateExpectedPointer({token_class_id, data, sign_alg, hash_alg, pubkey, nonce}){
+function calculateExpectedPointer({token_class_id, sign_alg, hash_alg, pubkey, nonce}){
     const signAlgCode = hash(sign_alg);
     const hashAlgCode = hash(hash_alg);
-    return hash(token_class_id+(data?hash(data):'')+signAlgCode+hashAlgCode+pubkey+nonce);
+    return hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
 }
 
-function calculatePointerFromPubKey({token_class_id, data, sign_alg, hash_alg, secret, salt, sourceState}){
+function calculatePointerFromPubKey({token_class_id, sign_alg, hash_alg, secret, salt, sourceState}){
     const signer = getTxSigner(secret);
     const pubkey = signer.publicKey;
     const signAlgCode = hash(sign_alg);
     const hashAlgCode = hash(hash_alg);
     const signature = signer.sign(salt);
     const nonce=hash(sourceState+signature);
-    return { pointer: hash(token_class_id+(data?hash(data):'')+signAlgCode+hashAlgCode+pubkey+nonce), signature };
+    return { pointer: hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce), signature };
 }
 
-function calculateExpectedPointerFromPubAddr({token_class_id, data, sign_alg, hash_alg, pubkey, salt, signature, nonce, sourceState}){
+function calculateExpectedPointerFromPubAddr({token_class_id, sign_alg, hash_alg, pubkey, salt, signature, nonce, sourceState}){
     if(!SignerEC.verify(pubkey, salt, signature))
 	throw new Error("Salt was not signed correctly");
 
@@ -52,7 +52,7 @@ function calculateExpectedPointerFromPubAddr({token_class_id, data, sign_alg, ha
     const hashAlgCode = hash(hash_alg);
     if(hash(sourceState+signature) !== nonce)
 	throw new Error("Nonce was not derived correctly");
-    return hash(token_class_id+(data?hash(data):'')+signAlgCode+hashAlgCode+pubkey+nonce);
+    return hash(token_class_id+signAlgCode+hashAlgCode+pubkey+nonce);
 }
 
 function calculatePubkey(secret){
@@ -77,11 +77,11 @@ async function calculateGenesisRequestId(tokenId){
 
 function calculateMintPayload(tokenId, tokenClass, tokenValue, data, destPointer, salt){
     const value = `${tokenValue.toString(16).slice(2).padStart(64, "0")}`;
-    return hash(tokenId+tokenClass+value+(data?hash(data):'')+destPointer+salt);
+    return hash(tokenId+tokenClass+value+(data?objectHash(data):'')+destPointer+salt);
 }
 
-async function calculatePayload(source, destPointer, salt, metaHash){
-    return hash(source.calculateStateHash()+destPointer+salt+metaHash);
+async function calculatePayload(source, destPointer, salt, dataHash){
+    return hash(source.calculateStateHash()+destPointer+salt+dataHash?dataHash:'');
 }
 
 function resolveReference(dest_ref){

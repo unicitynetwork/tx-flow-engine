@@ -16,7 +16,8 @@ class Transition {
     async execute(){
 	const status = await this.source.challenge.verify(this.input); // unlock
 	if(status != OK)return status;
-	
+	const dataStatus = await this.validateData();
+	if(dataStatus != OK)return dataStatus;
 	const { pointer, pubkey } = resolveReference(this.input.dest_ref);
 	if(pubkey)
 	    if(pubkey !== this.destination.challenge.pubkey)
@@ -38,13 +39,14 @@ class Transition {
 	}):pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = await calculatePayload(this.source,
-	    this.input.dest_ref, this.input.salt);
+	    this.input.dest_ref, this.input.salt, this.input.dataHash);
 	if(this.input.path[this.input.path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;
 	return OK;
     }
 
     async validateData(){
-	if(this.input.dataHash != objectHash(this.destination.data))
+	if(this.input.dataHash != objectHash(this.destination.data))return DATA_MISMATCH;
+	return OK;
     }
 
 }

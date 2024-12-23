@@ -14,7 +14,6 @@ class Token {
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
-	this.initDataHash = token_meta?hash(JSON.stringify(token_data)):"";
 	this.mintProofs = mint_proofs;
 	this.mintRequest = mint_request;
 	this.mintSalt = mint_salt;
@@ -85,13 +84,13 @@ class Token {
 	const destPointer = resolveReference(this.mintRequest.dest_ref).pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = await calculateMintPayload(this.tokenId, this.tokenClass,
-	    this.tokenValue, this.initMetaHash, this.mintRequest.dest_ref, this.mintSalt);
+	    this.tokenValue, this.genesis.data?objectHash(this.genesis.data):undefined, this.mintRequest.dest_ref, this.mintSalt);
 	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
     }
 
     getStats(){
-	return { id: this.tokenId, classId: this.tokenClass, value: this.tokenValue, meta: this.state.meta }
+	return { id: this.tokenId, classId: this.tokenClass, value: this.tokenValue, data: this.state.data }
     }
 
 }

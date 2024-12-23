@@ -13,7 +13,7 @@ class State {
 	if(!this.data)
 	    return this.challenge.getHexDigest();
 	else
-	    return hash(this.challenge.getHexDigest()+hash(JSON.stringify(this.data)));
+	    return hash(this.challenge.getHexDigest()+objectHash(this.data));
     }
 
 }
