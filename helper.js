@@ -1,4 +1,5 @@
 "use strict";
+const objectHash = require("object-hash");
 const { NOT_INCLUDED } = require("./aggregators_net/constants.js");
 //const CryptoJS = require('crypto-js');
 const { hash } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Hasher;

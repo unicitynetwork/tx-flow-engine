@@ -29,6 +29,11 @@ fi
 selected_file="${files[$((choice - 1))]}"
 
 read -p "Enter Nonce: " nonce
+if [ -n "$nonce" ]; then
+    nonce_option="--nonce $nonce"
+else
+    nonce_option=""
+fi
 
 # Prompt for user secret
 read -sp "Enter User Secret: " user_secret
@@ -38,7 +43,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command and capture the output
-if output=$(cat $selected_file | ./token_manager.js receive --nonce "$nonce"); then
+if output=$(cat $selected_file | ./token_manager.js receive "$nonce_option"); then
 
     echo "$output"
 

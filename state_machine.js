@@ -1,4 +1,5 @@
 "use strict";
+const objectHash = require("object-hash");
 const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY } = require('./constants.js');
 const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
      calculateMintPayload, resolveReference, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
@@ -51,14 +52,14 @@ function generateRecipientPubkeyAddr(secret){
     return calculatePubAddr(calculatePubkey(secret));
 }
 
-async function createTx(token, dest_ref, salt, secret, transport){
+async function createTx(token, dest_ref, salt, secret, transport, dataHash){
     const stateHash = await token.state.calculateStateHash();
-    const payload = await calculatePayload(token.state, dest_ref, salt);
+    const payload = await calculatePayload(token.state, dest_ref, salt, dataHash);
     const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
-    const input = new TxInput(path, dest_ref, salt);
+    const input = new TxInput(path, dest_ref, salt, dataHash);
     return new Transaction(token.tokenId, token.state, input, dest_ref);
 }
 
@@ -71,10 +72,11 @@ function exportFlow(token, transaction, pretify){
     return pretify?JSON.stringify(flow, null, 4):JSON.stringify(flow);
 }
 
-async function importFlow(tokenTransitionFlow, secret, nonce){
+async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
     const flow = JSON.parse(tokenTransitionFlow);
+    const data = dataJson?JSON.parse(dataJson):undefined;
     const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
-	token_value: flow.token.tokenValue, mint_proofs: flow.token.mintProofs,
+	token_value: flow.token.tokenValue, token_data: flow.token.genesis.data,  mint_proofs: flow.token.mintProofs,
 	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, init_state: flow.token.genesis,
 	transitions: flow.token.transitions});
     await token.init();
@@ -88,8 +90,8 @@ async function importFlow(tokenTransitionFlow, secret, nonce){
 	    if(pubkey !== sigPubkey)
 		throw new Error("Pubkeys do not match");
 	const salt_sig = pubkey?signer.sign(flow.transaction.input.salt):undefined;
-	const source = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', flow.transaction.source.challenge.pubkey, flow.transaction.source.challenge.nonce), flow.transaction.source.aux);
-	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), salt_sig?{salt_sig}:undefined);
+	const source = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', flow.transaction.source.challenge.pubkey, flow.transaction.source.challenge.nonce), flow.transaction.source.aux, flow.transaction.source.data);
+	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), salt_sig?{salt_sig}:undefined, data);
 	await token.applyTx(flow.transaction, destination);
     }
     return token;
@@ -101,8 +103,8 @@ async function getTokenStatus(token, secret, transport){
     const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
-    const { id, classId, value, meta } = token.getStats();
-    return { id, classId, value, meta, unspent: isLatestState, owned: isOwner }
+    const { id, classId, value, data } = token.getStats();
+    return { id, classId, value, data, unspent: isLatestState, owned: isOwner }
 }
 
 async function collectTokens(tokens, tokenClass, targetValue, secret, transport){
@@ -111,7 +113,7 @@ async function collectTokens(tokens, tokenClass, targetValue, secret, transport)
     let totalValue = BigInt(0);
     for(const name in tokens){
 	const status = await getTokenStatus(tokens[name], secret, transport);
-	const { id, classId, value, unspent, owned } = status;
+	const { id, classId, value, data, unspent, owned } = status;
 	if((classId == tokenClass) && unspent && owned){
 	    filteredTokens[name] = tokens[name];
 	    filteredTokenStats[name] = status;
@@ -135,11 +137,11 @@ function getTokenPool(){
     return new TokenPool();
 }
 
-async function createToken(secret, pool, tokenClass, tokenValue){
+async function createToken(secret, pool, tokenClass, tokenValue, tokenData){
     const token_id = generateRandom256BitHex();
     const nonce = generateRandom256BitHex();
     const token = await mint({ token_id, token_class_id: tokenClass, 
-	token_value: tokenValue, secret, nonce,  
+	token_value: tokenValue, data: tokenData, secret, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(defaultGateway())});
     return pool.addToken(secret, exportFlow(token, null, true));

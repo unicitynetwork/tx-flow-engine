@@ -1,4 +1,5 @@
 "use strict";
+const objectHash = require("object-hash");
 const { OK } = require('./aggregators_net/constants.js');
 const { GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('./constants.js');
 const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');

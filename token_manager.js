@@ -30,14 +30,18 @@ program
   .requiredOption('--token_id <token_id>', 'ID of the token')
   .requiredOption('--token_class <token_class_id>', 'Class of the token')
   .requiredOption('--token_value <token_value>', 'Value of the token (any string)')
+  .option('--data <json_string>', 'A data object represented as JSON string')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
 //    try {
+    console.log("args: "+process.argv);
       const token_id = validateOrConvert('token_id', options.token_id);
       const token_class = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
+      const token_data = options.data;
+    console.log("options.data: "+options.data);
       const token = await mint({ token_id, token_class_id: token_class, 
-	token_value: options.token_value, secret, nonce,  
+	token_value: options.token_value, token_data, secret, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
       console.log(exportFlow(token, null, true));
@@ -51,13 +55,15 @@ program
   .command('send')
   .description('Send a token')
   .requiredOption('--dest <dest_pointer>', 'Destination pointer for the token')
+  .option('--datahash <dest_data_hash>', 'Hash of the data at the recipient state')
   .action(async (options) => {
     const token = await importFlow(await getStdin());
     const destPointer = options.dest;
+    const destDataHash  = options.datahash;
     const salt = generateRandom256BitHex();
 
     const transport = new JSONRPCTransport(provider_url);
-    const tx = await createTx(token, destPointer, salt, secret, transport);
+    const tx = await createTx(token, destPointer, salt, secret, transport, destDataHash);
     console.log(exportFlow(token, tx, true));
   });
 
@@ -94,14 +100,16 @@ program
 program
   .command('receive')
   .description('Receive a token')
+  .option('--data <json_string>', 'A data object for the recipient state, represented as JSON string')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
 //    try {
       const nonce = validateOrConvert('nonce', options.nonce);
       const flowJson = await getStdin();
       const flow = JSON.parse(flowJson);
+      const token_data = options.data;
 
-      const token = await importFlow(flowJson, secret, nonce);
+      const token = await importFlow(flowJson, secret, nonce, token_data);
 
       console.log(exportFlow(token, null, true));
 //    } catch (error) {
