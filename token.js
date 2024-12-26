@@ -10,16 +10,16 @@ const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, cal
 
 class Token {
 
-    constructor({ token_id, token_class_id, token_value, token_data, mint_proofs, mint_request,
-	    mint_salt, init_state, transitions }){
+    constructor({ token_id, token_class_id, token_value, data, sign_alg, hash_alg, mint_proofs, mint_request,
+	    mint_salt, pubkey, nonce, transitions }){
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
 	this.mintProofs = mint_proofs;
 	this.mintRequest = mint_request;
 	this.mintSalt = mint_salt;
-	const {tokenClass, sign_alg, hash_alg, pubkey, nonce} = init_state.challenge;
-	this.genesis = new State(new ChallengePubkey(tokenClass, token_id, sign_alg, hash_alg, pubkey, nonce), undefined, token_data);
+	this.genesis = new State(new ChallengePubkey(this.tokenClass, this.tokenId, sign_alg, hash_alg, pubkey, nonce), 
+	    undefined, data);
 	this.transitions = transitions;
     }
 
@@ -85,7 +85,7 @@ class Token {
 	const destPointer = resolveReference(this.mintRequest.dest_ref).pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = await calculateMintPayload(this.tokenId, this.tokenClass,
-	    this.tokenValue, this.genesis.data?objectHash(this.genesis.data):undefined, this.mintRequest.dest_ref, this.mintSalt);
+	    this.tokenValue, this.genesis.data?objectHash(this.genesis.data):'', this.mintRequest.dest_ref, this.mintSalt);
 	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
     }

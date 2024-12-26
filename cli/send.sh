@@ -31,6 +31,13 @@ selected_file="${files[$((choice - 1))]}"
 # Prompt for destination address
 read -p "Enter Destination Address: " destination_address
 
+read -p "Enter Token Data Hash (optional): " token_data_hash
+if [ -n "$token_data_hash" ]; then
+    token_data_hash_option="--datahash=$token_data_hash"
+else
+    token_data_hash_option=""
+fi
+
 read -sp "Enter User Secret: " user_secret
 echo
 
@@ -38,7 +45,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command with the selected file as stdin
-if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_address"); then
+if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_address" "$token_data_hash_option"); then
     # Rename the file after successful execution
     timestamp=$(date +%s)
     new_filename="${selected_file}.spent.${timestamp}"

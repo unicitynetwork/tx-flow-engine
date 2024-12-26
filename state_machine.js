@@ -31,15 +31,15 @@ async function mint({
     const stateHash = await calculateGenesisStateHash(token_id);
     const destPointerAddr = calculatePubPointer(await calculateExpectedPointer({token_class_id, sign_alg,
 	hash_alg, pubkey, nonce}));
-    const payload = await calculateMintPayload(token_id, token_class_id, token_value, token_data?objectHash(token_data):'', destPointerAddr,
+    const data = token_data?JSON.parse(token_data):undefined;
+    const payload = await calculateMintPayload(token_id, token_class_id, token_value, data?objectHash(data):'', destPointerAddr,
 	mint_salt);
     const mintProvider = getMinterProvider(transport, token_id);
     const { requestId, result } = await mintProvider.submitStateTransition(stateHash, payload);
     const { status, path } = await mintProvider.extractProofs(requestId);
 
-    const init_state = new State(new ChallengePubkey(token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce), undefined, token_data);
-    const token = new Token({token_id, token_class_id, token_value, token_data, mint_proofs: { path },
-	mint_request: { dest_ref: destPointerAddr }, mint_salt, init_state, transitions: [] });
+    const token = new Token({token_id, token_class_id, token_value, data, mint_proofs: { path },
+	mint_request: { dest_ref: destPointerAddr }, mint_salt, transitions: [], sign_alg, hash_alg, pubkey, nonce });
     await token.init();
     return token;
 }
@@ -76,8 +76,11 @@ async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
     const flow = JSON.parse(tokenTransitionFlow);
     const data = dataJson?JSON.parse(dataJson):undefined;
     const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
-	token_value: flow.token.tokenValue, token_data: flow.token.genesis.data,  mint_proofs: flow.token.mintProofs,
-	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, init_state: flow.token.genesis,
+	token_value: flow.token.tokenValue, data: flow.token.genesis.data,  sign_alg: flow.token.genesis.challenge.sign_alg,
+	hash_alg: flow.token.genesis.challenge.hash_alg,  mint_proofs: flow.token.mintProofs,
+	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, 
+	pubkey: flow.token.genesis.challenge.pubkey,
+	nonce: flow.token.genesis.challenge.nonce,
 	transitions: flow.token.transitions});
     await token.init();
     if(flow.transaction && secret){
@@ -90,8 +93,11 @@ async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
 	    if(pubkey !== sigPubkey)
 		throw new Error("Pubkeys do not match");
 	const salt_sig = pubkey?signer.sign(flow.transaction.input.salt):undefined;
-	const source = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', flow.transaction.source.challenge.pubkey, flow.transaction.source.challenge.nonce), flow.transaction.source.aux, flow.transaction.source.data);
-	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), salt_sig?{salt_sig}:undefined, data);
+	const source = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', 
+	    flow.transaction.source.challenge.pubkey, flow.transaction.source.challenge.nonce), flow.transaction.source.aux, 
+	    flow.transaction.source.data);
+	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', 
+	    sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), salt_sig?{salt_sig}:undefined, data);
 	await token.applyTx(flow.transaction, destination);
     }
     return token;
@@ -179,6 +185,10 @@ async function receiveTokens(secret, pool, tokenFlows){
     }
 }
 
+function getHashOf(jsonStr){
+    return objectHash(JSON.parse(jsonStr));
+}
+
 module.exports = {
     mint,
     generateRecipientPointerAddr,
@@ -198,5 +208,6 @@ module.exports = {
     createToken,
     findTokens,
     sendTokens,
-    receiveTokens
+    receiveTokens,
+    getHashOf
 }

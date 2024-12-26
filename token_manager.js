@@ -2,7 +2,8 @@
 "use strict";
 const { Command } = require('commander');
 //const crypto = require('crypto');
-const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, generateRecipientPubkeyAddr } = require('./state_machine.js');
+const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, 
+    generateRecipientPubkeyAddr, getHashOf } = require('./state_machine.js');
 const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
 const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
 const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
@@ -34,12 +35,10 @@ program
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
 //    try {
-    console.log("args: "+process.argv);
       const token_id = validateOrConvert('token_id', options.token_id);
       const token_class = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
       const token_data = options.data;
-    console.log("options.data: "+options.data);
       const token = await mint({ token_id, token_class_id: token_class, 
 	token_value: options.token_value, token_data, secret, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
@@ -96,12 +95,26 @@ program
 //    }
   });
 
+// Token data command
+program
+  .command('tokendata')
+  .description('Generate token data hash')
+  .requiredOption('--data <json_string>', 'A data object represented as JSON string')
+  .action(async (options) => {
+//    try {
+      console.log(getHashOf(options.data));
+//    } catch (error) {
+//      console.error(error.message);
+//    }
+  });
+
+
 // Receive command
 program
   .command('receive')
   .description('Receive a token')
   .option('--data <json_string>', 'A data object for the recipient state, represented as JSON string')
-  .requiredOption('--nonce <nonce>', 'Nonce value')
+  .option('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
 //    try {
       const nonce = validateOrConvert('nonce', options.nonce);

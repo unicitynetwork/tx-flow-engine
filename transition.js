@@ -14,7 +14,7 @@ class Transition {
     }
 
     async execute(){
-	const status = await this.source.challenge.verify(this.input); // unlock
+	const status = await this.source.verify(this.input); // unlock
 	if(status != OK)return status;
 	const dataStatus = await this.validateData();
 	if(dataStatus != OK)return dataStatus;

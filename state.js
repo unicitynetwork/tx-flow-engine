@@ -1,5 +1,6 @@
 "use strict";
-const { hasher } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Hasher;
+const objectHash = require("object-hash");
+const { hash } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Hasher;
 
 class State {
 
@@ -14,6 +15,10 @@ class State {
 	    return this.challenge.getHexDigest();
 	else
 	    return hash(this.challenge.getHexDigest()+objectHash(this.data));
+    }
+
+    verify(input){
+	return this.challenge.verify(input, this.calculateStateHash());
     }
 
 }

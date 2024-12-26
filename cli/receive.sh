@@ -28,6 +28,13 @@ fi
 # Get the selected file
 selected_file="${files[$((choice - 1))]}"
 
+read -p "Enter Token Data (optional): " token_data
+if [ -n "$token_data" ]; then
+    token_data_option="--data=$token_data"
+else
+    token_data_option=""
+fi
+
 read -p "Enter Nonce: " nonce
 if [ -n "$nonce" ]; then
     nonce_option="--nonce $nonce"
@@ -43,7 +50,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command and capture the output
-if output=$(cat $selected_file | ./token_manager.js receive "$nonce_option"); then
+if output=$(cat $selected_file | ./token_manager.js receive "$token_data_option" "$nonce_option"); then
 
     echo "$output"
 

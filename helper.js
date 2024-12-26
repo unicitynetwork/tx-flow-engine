@@ -76,9 +76,9 @@ async function calculateGenesisRequestId(tokenId){
     return await UnicityProvider.calculateRequestId(minterPubkey, genesisState);
 }
 
-function calculateMintPayload(tokenId, tokenClass, tokenValue, data, destPointer, salt){
+function calculateMintPayload(tokenId, tokenClass, tokenValue, dataHash, destPointer, salt){
     const value = `${tokenValue.toString(16).slice(2).padStart(64, "0")}`;
-    return hash(tokenId+tokenClass+value+(data?objectHash(data):'')+destPointer+salt);
+    return hash(tokenId+tokenClass+value+dataHash+destPointer+salt);
 }
 
 async function calculatePayload(source, destPointer, salt, dataHash){
