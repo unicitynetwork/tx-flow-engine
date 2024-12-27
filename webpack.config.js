@@ -11,8 +11,8 @@ module.exports = {
         libraryTarget: 'umd', // UMD format for browser and Node.js compatibility
         globalObject: 'this', // Ensures compatibility in browser and Node.js
     },
-//    mode: 'production', // Minifies the output
-    mode: 'development',
+    mode: 'production', // Minifies the output
+//    mode: 'development',
     module: {
         rules: [
             {
