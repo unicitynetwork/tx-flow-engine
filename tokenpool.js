@@ -9,33 +9,33 @@ class TokenPool {
     }
 
     addPointer(pointer, nonce){
-	return this.pointers[pointer] = nonce;
+	return this.pointers['_'+pointer] = nonce;
     }
 
     getNonce(pointer){
-	return this.pointers[pointer];
+	return this.pointers['_'+pointer];
     }
 
     addToken(secret, txfJson){
 	const pubkey = getPubKey(secret);
-	if(!this.tokens[pubkey])this.tokens[pubkey] = {};
+	if(!this.tokens['_'+pubkey])this.tokens['_'+pubkey] = {};
 	const txf = JSON.parse(txfJson);
-	return this.tokens[pubkey][txf.token.tokenId] = txfJson;
+	return this.tokens['_'+pubkey]['_'+txf.token.tokenId] = txfJson;
     }
 
     deleteToken(secret, tokenId){
 	const pubkey = getPubKey(secret);
-	delete this.tokens[pubkey][tokenId];
+	delete this.tokens['_'+pubkey]['_'+tokenId];
     }
 
     getToken(secret, tokenId){
 	const pubkey = getPubKey(secret);
-	return this.tokens[pubkey][tokenId];
+	return this.tokens['_'+pubkey]['_'+tokenId];
     }
 
     getTokens(secret){
 	const pubkey = getPubKey(secret);
-	return this.tokens[pubkey];
+	return this.tokens['_'+pubkey];
     }
 
 }
