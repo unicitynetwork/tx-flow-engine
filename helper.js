@@ -82,7 +82,7 @@ function calculateMintPayload(tokenId, tokenClass, tokenValue, dataHash, destPoi
 }
 
 async function calculatePayload(source, destPointer, salt, dataHash){
-    return hash(source.calculateStateHash()+destPointer+salt+dataHash?dataHash:'');
+    return hash(source.calculateStateHash()+destPointer+salt+(dataHash?dataHash:''));
 }
 
 function resolveReference(dest_ref){

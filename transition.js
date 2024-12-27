@@ -45,6 +45,11 @@ class Transition {
     }
 
     async validateData(){
+	if(!this.destination.data)
+	    if(!this.input.dataHash)
+		return OK;
+	    else
+		return DATA_MISMATCH;
 	if(this.input.dataHash != objectHash(this.destination.data))return DATA_MISMATCH;
 	return OK;
     }
