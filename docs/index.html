@@ -254,7 +254,8 @@
 	    const status = await TXF.getTokenStatus(token, secret, transport);
 	    console.log(status);
 	    document.getElementById("value").value = status.value;
-	    document.getElementById("jsonData").value = JSON.stringify(status.data, null, 4);
+	    if(status.data)
+		document.getElementById("jsonData").value = JSON.stringify(status.data, null, 4);
 	    if(status.owned){
 		if(status.unspent){
 		    document.getElementById("status").innerText = "SPENDABLE";
