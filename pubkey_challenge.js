@@ -15,12 +15,12 @@ class ChallengePubkey {
 	this.nonce = nonce;
     }
 
-    async verify(input){
+    verify(input, stateHash){
 	const status = UnicityProvider.verifyInclusionProofs(input.path);
 	if(status != OK)return status;
 	const l = input.path.length-1;
 	if((input.path[l].authenticator.pubkey != this.pubkey)||
-	    (input.path[l].authenticator.state != (await this.getHexDigest())))return INP_MISMATCH;
+	    (input.path[l].authenticator.state != stateHash))return INP_MISMATCH;
 	return OK;
     }
 

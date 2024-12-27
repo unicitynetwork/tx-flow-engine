@@ -1,4 +1,5 @@
 "use strict";
+const objectHash = require("object-hash");
 const { NOT_INCLUDED } = require("./aggregators_net/constants.js");
 //const CryptoJS = require('crypto-js');
 const { hash } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Hasher;
@@ -14,10 +15,10 @@ function calculateGenesisStateHash(tokenId){
     return hash(tokenId+MINT_SUFFIX_HEX);
 }
 
-function calculateStateHash({token_class_id, token_id, sign_alg, hash_alg, pubkey, nonce}){
+function calculateStateHash({token_class_id, token_id, sign_alg, hash_alg, data, pubkey, nonce}){
     const signAlgCode = hash(sign_alg);
     const hashAlgCode = hash(hash_alg);
-    return hash(token_class_id+signAlgCode+token_id+hashAlgCode+pubkey+nonce);
+    return hash(token_class_id+signAlgCode+token_id+hashAlgCode+(data?hash(data):'')+pubkey+nonce);
 }
 
 function calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}){
@@ -75,13 +76,13 @@ async function calculateGenesisRequestId(tokenId){
     return await UnicityProvider.calculateRequestId(minterPubkey, genesisState);
 }
 
-function calculateMintPayload(tokenId, tokenClass, tokenValue, destPointer, salt){
+function calculateMintPayload(tokenId, tokenClass, tokenValue, dataHash, destPointer, salt){
     const value = `${tokenValue.toString(16).slice(2).padStart(64, "0")}`;
-    return hash(tokenId+tokenClass+value+destPointer+salt);
+    return hash(tokenId+tokenClass+value+dataHash+destPointer+salt);
 }
 
-async function calculatePayload(source, destPointer, salt){
-    return hash((await source.challenge.getHexDigest())+destPointer+salt);
+async function calculatePayload(source, destPointer, salt, dataHash){
+    return hash(source.calculateStateHash()+destPointer+salt+(dataHash?dataHash:''));
 }
 
 function resolveReference(dest_ref){
