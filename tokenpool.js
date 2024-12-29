@@ -23,18 +23,18 @@ class TokenPool {
 	return this.tokens['_'+pubkey]['_'+txf.token.tokenId] = txfJson;
     }
 
-    deleteToken(secret, tokenId){
-	const pubkey = getPubKey(secret);
+    deleteToken(pubkey, tokenId){
+//	const pubkey = getPubKey(secret);
 	delete this.tokens['_'+pubkey]['_'+tokenId];
     }
 
-    getToken(secret, tokenId){
-	const pubkey = getPubKey(secret);
+    getToken(pubkey, tokenId){
+//	const pubkey = getPubKey(secret);
 	return this.tokens['_'+pubkey]['_'+tokenId];
     }
 
-    getTokens(secret){
-	const pubkey = getPubKey(secret);
+    getTokens(pubkey){
+//	const pubkey = getPubKey(secret);
 	return this.tokens['_'+pubkey];
     }
 
