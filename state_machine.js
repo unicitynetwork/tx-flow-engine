@@ -26,7 +26,32 @@ async function mint({
     hash_alg,
     transport
     }){
-    const signer = getTxSigner(secret, nonce);
+    return await _mint({
+	token_id,
+	token_class_id,
+	token_value,
+	token_data,
+	signer: getTxSigner(secret, nonce),
+	nonce,
+	mint_salt,
+	sign_alg,
+	hash_alg,
+	transport
+    });
+}
+
+async function _mint({
+    token_id,
+    token_class_id,
+    token_value,
+    token_data,
+    signer,
+    nonce,
+    mint_salt,
+    sign_alg,
+    hash_alg,
+    transport
+    }){
     const pubkey = signer.getPubKey();
     const stateHash = await calculateGenesisStateHash(token_id);
     const destPointerAddr = calculatePubPointer(await calculateExpectedPointer({token_class_id, sign_alg,
@@ -53,9 +78,14 @@ function generateRecipientPubkeyAddr(secret){
 }
 
 async function createTx(token, dest_ref, salt, secret, transport, dataHash){
+    return await _createTx(token, dest_ref, salt, 
+	getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce), 
+    transport, dataHash);
+}
+
+async function _createTx(token, dest_ref, salt, signer, transport, dataHash){
     const stateHash = await token.state.calculateStateHash();
     const payload = await calculatePayload(token.state, dest_ref, salt, dataHash);
-    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
@@ -73,6 +103,10 @@ function exportFlow(token, transaction, pretify){
 }
 
 async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
+    return await _importFlow(tokenTransitionFlow, secret?getTxSigner(secret, nonce):undefined, nonce, dataJson);
+}
+
+async function _importFlow(tokenTransitionFlow, signer, nonce, dataJson){
     const flow = JSON.parse(tokenTransitionFlow);
     const data = dataJson?JSON.parse(dataJson):undefined;
     const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
@@ -83,11 +117,10 @@ async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
 	nonce: flow.token.genesis.challenge.nonce,
 	transitions: flow.token.transitions});
     await token.init();
-    if(flow.transaction && secret){
+    if(flow.transaction && signer){
 	const { pubkey } = resolveReference(flow.transaction.input.dest_ref);
 	if(!nonce && !pubkey)
 	    throw new Error("Cannot import flow with transaction: nonce of the state for the transaction is missing");
-	const signer = getTxSigner(secret, nonce);
 	const sigPubkey = signer.getPubKey();
 	if(pubkey)
 	    if(pubkey !== sigPubkey)
@@ -104,21 +137,28 @@ async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
 }
 
 async function getTokenStatus(token, secret, transport){
+    return await _getTokenStatus(token, 
+	getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce), 
+	transport);
+}
+
+async function _getTokenStatus(token, signer, transport){
     const stateHash = await token.state.calculateStateHash();
-    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
-    const isOwner = await confirmOwnership(token, signer);
+    const isOwner = await confirmOwnership(token, signer.getPubKey());
     const { id, classId, value, data } = token.getStats();
     return { id, classId, value, data, unspent: isLatestState, owned: isOwner }
 }
 
-async function collectTokens(tokens, tokenClass, targetValue, secret, transport){
+async function collectTokens(tokens, tokenClass, targetValue, secretOrSigner, transport){
     let filteredTokens = [];
     let filteredTokenStats = [];
     let totalValue = BigInt(0);
     for(const name in tokens){
-	const status = await getTokenStatus(tokens[name], secret, transport);
+	const status = isSigner(secretOrSigner)?
+	    await _getTokenStatus(tokens[name], getTxSigner(secretOrSigner), transport):
+	    await getTokenStatus(tokens[name], secretOrSigner, transport);
 	const { id, classId, value, data, unspent, owned } = status;
 	if((classId == tokenClass) && unspent && owned){
 	    filteredTokens[name] = tokens[name];
@@ -144,42 +184,51 @@ function getTokenPool(){
 }
 
 async function createToken(secret, pool, tokenClass, tokenValue, tokenData){
-    const token_id = generateRandom256BitHex();
-    const nonce = generateRandom256BitHex();
-    const token = await mint({ token_id, token_class_id: tokenClass, 
-	token_value: tokenValue, data: tokenData, secret, nonce,  
-	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
-	transport: new JSONRPCTransport(defaultGateway())});
-    return pool.addToken(secret, exportFlow(token, null, true));
+    return await _createToken(getTxSigner(secret, nonce), pool, tokenClass, tokenValue, tokenData);
 }
 
-async function findTokens(secret, pool, tokenClass, targetValue){
-    const tokenJsons = pool.getTokens(secret);
+async function _createToken(signer, pool, tokenClass, tokenValue, tokenData){
+    const token_id = generateRandom256BitHex();
+    const nonce = generateRandom256BitHex();
+    const token = await _mint({ token_id, token_class_id: tokenClass, 
+	token_value: tokenValue, data: tokenData, signer, nonce,  
+	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
+	transport: new JSONRPCTransport(defaultGateway())});
+    return pool.addToken(signer.getPubKey(), exportFlow(token, null, true));
+}
+
+async function findTokens(secretOrSigner, pool, tokenClass, targetValue){
+    const tokenJsons = pool.getTokens(isSigner(secretOrSigner)?secretOrSigner.getPubKey():
+	getTxSigner(secretOrSigner).getPubKey());
     let tokens = {};
     for(let tokenId in tokenJsons){
 	tokens[tokenId] = await importFlow(tokenJsons[tokenId]);
     }
-    return await collectTokens(tokens, tokenClass, targetValue, secret, new JSONRPCTransport(defaultGateway()));
+    return await collectTokens(tokens, tokenClass, targetValue, secretOrSigner, new JSONRPCTransport(defaultGateway()));
 }
 
-async function sendTokens(secret, pool, tokenClass, targetValue, dest_ref){
-    const tokens = (await findTokens(secret, pool, tokenClass, targetValue)).tokens;
+async function sendTokens(secretOrSigner, pool, tokenClass, targetValue, dest_ref){
+    const tokens = (await findTokens(secretOrSigner, pool, tokenClass, targetValue)).tokens;
     const flows = {};
     for(let tokenId in tokens){
 	const token = tokens[tokenId];
 	const salt = generateRandom256BitHex();
-	const tx = await createTx(token, dest_ref, salt, secret, new JSONRPCTransport(defaultGateway()));
+	const tx = isSigner(secretOrSigner)?
+	    await _createTx(token, dest_ref, salt, secretOrSigner, new JSONRPCTransport(defaultGateway())):
+	    await createTx(token, dest_ref, salt, secretOrSigner, new JSONRPCTransport(defaultGateway()));
 	flows[tokenId] = exportFlow(token, tx, true);
     }
     return flows;
 }
 
-async function receiveTokens(secret, pool, tokenFlows){
+async function receiveTokens(secretOrSigner, pool, tokenFlows){
     for(let tokenId in tokenFlows){
 	const txf = tokenFlows[tokenId];
 	const tmpToken = JSON.parse(txf);
 	const nonce = pool.getNonce(tmpToken.transaction.dest_ref);
-	const token = await importFlow(txf, secret, nonce);
+	const token = isSigner(secretOrSigner)?
+	    await _importFlow(txf, secretOrSigner, nonce):
+	    await importFlow(txf, secretOrSigner, nonce);
 	const updatedJson = exportFlow(token, null, true);
 	pool.addToken(secret, updatedJson);
     }
@@ -192,13 +241,17 @@ function getHashOf(jsonStr){
 
 module.exports = {
     mint,
+    _mint,
     generateRecipientPointerAddr,
     generateRecipientPubkeyAddr,
     createTx,
+    _createTx,
     importTx,
     exportFlow,
     importFlow,
+    _importFlow,
     getTokenStatus,
+    _getTokenStatus,
     collectTokens,
     getHTTPTransport,
     validateOrConvert, 
@@ -207,6 +260,7 @@ module.exports = {
     calculatePointer,
     getTokenPool,
     createToken,
+    _createToken,
     findTokens,
     sendTokens,
     receiveTokens,

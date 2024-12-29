@@ -16,8 +16,8 @@ class TokenPool {
 	return this.pointers['_'+pointer];
     }
 
-    addToken(secret, txfJson){
-	const pubkey = getPubKey(secret);
+    addToken(pubkey, txfJson){
+//	const pubkey = getPubKey(secret);
 	if(!this.tokens['_'+pubkey])this.tokens['_'+pubkey] = {};
 	const txf = JSON.parse(txfJson);
 	return this.tokens['_'+pubkey]['_'+txf.token.tokenId] = txfJson;

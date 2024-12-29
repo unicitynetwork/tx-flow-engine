@@ -85,12 +85,23 @@ async function calculatePayload(source, destPointer, salt, dataHash){
     return hash(source.calculateStateHash()+destPointer+salt+(dataHash?dataHash:''));
 }
 
-function resolveReference(dest_ref){
-    if(dest_ref.startsWith('point'))
-	return { pointer: dest_ref.substring(5) };
-    if(dest_ref.startsWith('pub'))
-	return { pubkey: dest_ref.substring(3) };
-    return dest_ref;
+function resolveReference(dest_ref) {
+    let ext;
+    if (dest_ref.includes('.')) {
+        const [base, ...rest] = dest_ref.split('.');
+        dest_ref = base;
+        ext = rest.join('.');
+    }
+
+    if (dest_ref.startsWith('point')) {
+        return { pointer: dest_ref.substring(5), ext };
+    }
+
+    if (dest_ref.startsWith('pub')) {
+        return { pubkey: dest_ref.substring(3), ext };
+    }
+
+    return { ext };
 }
 
 function getMinterSigner(tokenId){
@@ -113,8 +124,8 @@ async function isUnspent(provider, state){
     return status == NOT_INCLUDED;
 }
 
-async function confirmOwnership(token, signer){
-    return token.state.challenge.pubkey == signer.getPubKey();
+async function confirmOwnership(token, pubkey){
+    return token.state.challenge.pubkey == pubkey;
 }
 
 function getStdin(){
@@ -165,6 +176,10 @@ function getPubKey(secret){
     return signer.getPubKey();
 }
 
+function isSigner(obj){
+    return (obj instanceof SignerEC);
+}
+
 function isValid256BitHex(value) {
   const hexRegex = /^[0-9a-fA-F]{64}$/; // 64 hex chars = 256 bits
   return hexRegex.test(value);
@@ -213,6 +228,7 @@ module.exports = {
     getMinterProvider,
     getTxSigner,
     getPubKey,
+    isSigner,
     isUnspent,
     getStdin,
     splitStdin,
