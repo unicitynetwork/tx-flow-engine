@@ -1,12 +1,11 @@
 "use strict";
 const objectHash = require("object-hash");
-const { OK } = require('./aggregators_net/constants.js');
-const { GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('./constants.js');
-const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { OK, GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('@unicitylabs/shared');
+const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Transition } = require('./transition.js');
-const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, calculateExpectedPointer, resolveReference } = require('./helper.js');
+const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, calculateExpectedPointer, resolveReference } = require('@unicitylabs/shared');
 
 class Token {
 

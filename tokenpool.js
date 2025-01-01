@@ -1,5 +1,5 @@
 "use strict"
-const { getPubKey } = require('./helper.js');
+const { getPubKey } = require('@unicitylabs/shared');
 
 class TokenPool {
 

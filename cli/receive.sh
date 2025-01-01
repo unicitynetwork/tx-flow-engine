@@ -50,7 +50,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command and capture the output
-if output=$(cat $selected_file | ./token_manager.js receive "$token_data_option" "$nonce_option"); then
+if output=$(cat $selected_file | ./token_manager.js receive "$token_data_option" $nonce_option); then
 
     echo "$output"
 

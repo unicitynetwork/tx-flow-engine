@@ -1,6 +1,6 @@
 "use strict";
 const objectHash = require("object-hash");
-const { hash } = require("./aggregators_net/hasher/sha256hasher.js").SHA256Hasher;
+const { hash } = require("@unicitylabs/shared/hasher/sha256hasher.js").SHA256Hasher;
 
 class State {
 

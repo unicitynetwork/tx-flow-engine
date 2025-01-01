@@ -1,8 +1,8 @@
 "use strict";
 const objectHash = require('object-hash');
-const { calculateStateHash, calculateExpectedPointer, calculateExpectedPointerFromPubAddr, calculatePayload, resolveReference } = require('./helper.js');
-const { OK } = require('./aggregators_net/constants.js');
-const { DEST_MISMATCH, DATA_MISMATCH, PAYLOAD_MISMATCHED } = require('./constants.js');
+const { calculateStateHash, calculateExpectedPointer, calculateExpectedPointerFromPubAddr, 
+    calculatePayload, resolveReference } = require('@unicitylabs/shared');
+const { OK, DEST_MISMATCH, DATA_MISMATCH, PAYLOAD_MISMATCHED } = require('@unicitylabs/shared');
 
 class Transition {
 
