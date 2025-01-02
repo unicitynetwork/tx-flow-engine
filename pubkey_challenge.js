@@ -1,8 +1,7 @@
 "use strict";
-const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
-const { calculateStateHash } = require("./helper.js");
-const { OK } = require('./aggregators_net/constants.js');
-const { INP_MISMATCH } = require('./constants.js');
+const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
+const { calculateStateHash } = require("@unicitylabs/shared");
+const { OK, INP_MISMATCH } = require('@unicitylabs/shared');
 
 class ChallengePubkey {
 

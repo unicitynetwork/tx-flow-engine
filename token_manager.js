@@ -4,14 +4,14 @@ const { Command } = require('commander');
 //const crypto = require('crypto');
 const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, 
     generateRecipientPubkeyAddr, getHashOf } = require('./state_machine.js');
-const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
-const { SignerEC } = require('./aggregators_net/signer/SignerEC.js');
-const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
-const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
+const { JSONRPCTransport } = require('@unicitylabs/shared/client/http_client.js');
+const { SignerEC } = require('@unicitylabs/shared/signer/SignerEC.js');
+const { hash } = require('@unicitylabs/shared/hasher/sha256hasher.js').SHA256Hasher;
+const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { calculateStateHash, calculatePointer, getStdin, splitStdin, validateOrConvert, 
-    generateRandom256BitHex} = require('./helper.js');
+    generateRandom256BitHex} = require('@unicitylabs/shared');
 
 require('dotenv').config();
 

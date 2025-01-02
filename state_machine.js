@@ -1,17 +1,17 @@
 "use strict";
 const objectHash = require("object-hash");
-const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY } = require('./constants.js');
-const { calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
+const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY, calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
      calculateMintPayload, resolveReference, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
-    getTxSigner, getPubKey, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('./helper.js');
+    generateRecipientPointerAddr, generateRecipientPubkeyAddr,
+    getTxSigner, getPubKey, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('@unicitylabs/shared');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
 const { Transaction } = require('./transaction.js');
 const { TxInput } = require('./tx_input.js');
-const { hash } = require('./aggregators_net/hasher/sha256hasher.js').SHA256Hasher;
-const { UnicityProvider } = require('./aggregators_net/provider/UnicityProvider.js');
-const { JSONRPCTransport } = require('./aggregators_net/client/http_client.js');
+const { hash } = require('@unicitylabs/shared/hasher/sha256hasher.js').SHA256Hasher;
+const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
+const { JSONRPCTransport } = require('@unicitylabs/shared/client/http_client.js');
 const { TokenPool } = require('./tokenpool.js');
 
 async function mint({
@@ -42,14 +42,6 @@ async function mint({
 	mint_request: { dest_ref: destPointerAddr }, mint_salt, transitions: [], sign_alg, hash_alg, pubkey, nonce });
     await token.init();
     return token;
-}
-
-function generateRecipientPointerAddr(token_class_id, sign_alg, hash_alg, secret, nonce){
-    return calculatePubPointer(calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}));
-}
-
-function generateRecipientPubkeyAddr(secret){
-    return calculatePubAddr(calculatePubkey(secret));
 }
 
 async function createTx(token, dest_ref, salt, secret, transport, dataHash){
