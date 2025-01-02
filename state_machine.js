@@ -2,6 +2,7 @@
 const objectHash = require("object-hash");
 const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY, calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
      calculateMintPayload, resolveReference, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
+    generateRecipientPointerAddr, generateRecipientPubkeyAddr,
     getTxSigner, getPubKey, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('@unicitylabs/shared');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
@@ -41,14 +42,6 @@ async function mint({
 	mint_request: { dest_ref: destPointerAddr }, mint_salt, transitions: [], sign_alg, hash_alg, pubkey, nonce });
     await token.init();
     return token;
-}
-
-function generateRecipientPointerAddr(token_class_id, sign_alg, hash_alg, secret, nonce){
-    return calculatePubPointer(calculatePointer({token_class_id, sign_alg, hash_alg, secret, nonce}));
-}
-
-function generateRecipientPubkeyAddr(secret){
-    return calculatePubAddr(calculatePubkey(secret));
 }
 
 async function createTx(token, dest_ref, salt, secret, transport, dataHash){

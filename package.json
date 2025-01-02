@@ -1,15 +1,20 @@
 {
-  "name": "unicity-state-machine",
-  "version": "1.0.0",
+  "name": "@unicitylabs/tx-flow-engine",
+  "version": "1.0.1",
   "description": "Generic State Transition Flow engine for value-carrier agents",
-  "main": "token_manager.js",
+  "main": "state_machine.js",
   "scripts": {
     "build": "webpack"
   },
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unicitynetwork/tx-flow-engine.git"
+  },
+  "author": "cryptohog",
   "license": "ISC",
+  "homepage": "https://unicitynetwork.github.io/tx-flow-engine/",
   "dependencies": {
-    "@unicitylabs/shared": "^1.0.0",
+    "@unicitylabs/shared": "^1.0.1",
     "buffer": "^6.0.3",
     "commander": "^12.1.0",
     "crypto-js": "^4.2.0",
@@ -26,5 +31,8 @@
     "html-webpack-plugin": "^5.6.3",
     "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
