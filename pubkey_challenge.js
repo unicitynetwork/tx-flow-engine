@@ -1,6 +1,7 @@
 "use strict";
-const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
+const { UnicityProvider, verifyInclusionProofs, calculateRequestId } = require('@unicitylabs/shared/provider/UnicityProvider.js');
 const { calculateStateHash } = require("@unicitylabs/shared");
+const { hash } = require("@unicitylabs/shared/hasher/sha256hasher.js").SHA256Hasher;
 const { OK, INP_MISMATCH } = require('@unicitylabs/shared');
 
 class ChallengePubkey {
@@ -15,7 +16,8 @@ class ChallengePubkey {
     }
 
     verify(input, stateHash){
-	const status = UnicityProvider.verifyInclusionProofs(input.path);
+	const requestId = calculateRequestId(hash, this.pubkey, stateHash);
+	const status = verifyInclusionProofs(input.path, requestId);
 	if(status != OK)return status;
 	const l = input.path.length-1;
 	if((input.path[l].authenticator.pubkey != this.pubkey)||

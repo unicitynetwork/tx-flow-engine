@@ -1,7 +1,7 @@
 "use strict";
 const objectHash = require("object-hash");
 const { OK, GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('@unicitylabs/shared');
-const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
+const { UnicityProvider, verifyInclusionProofs } = require('@unicitylabs/shared/provider/UnicityProvider.js');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Transition } = require('./transition.js');
@@ -71,9 +71,9 @@ class Token {
     }
 
     async validateGenesis(){
-	const status = UnicityProvider.verifyInclusionProofs(this.mintProofs.path);
-	if(status != OK)return status;
 	const genesisRequestId = await calculateGenesisRequestId(this.tokenId);
+	const status = verifyInclusionProofs(this.mintProofs.path, genesisRequestId);
+	if(status != OK)return status;
 	const l = this.mintProofs.path.length-1;
 	const expectedDestPointer = await calculateExpectedPointer({token_class_id: this.tokenClass,
 	    sign_alg: this.genesis.challenge.sign_alg,
