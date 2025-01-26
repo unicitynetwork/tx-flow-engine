@@ -1,5 +1,5 @@
 "use strict";
-const objectHash = require("object-hash");
+const { objectHash } = require('@unicitylabs/shared/hasher/sha256hasher.js').SHA256Hasher;
 const { OK, GENESIS_MISMATCH, DEST_MISMATCH, PAYLOAD_MISMATCH } = require('@unicitylabs/shared');
 const { UnicityProvider, verifyInclusionProofs } = require('@unicitylabs/shared/provider/UnicityProvider.js');
 const { State } = require('./state.js');
