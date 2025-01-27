@@ -1,6 +1,6 @@
 {
   "name": "@unicitylabs/tx-flow-engine",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "description": "Generic State Transition Flow engine for value-carrier agents",
   "main": "state_machine.js",
   "scripts": {
