@@ -2,7 +2,7 @@
 "use strict";
 const { Command } = require('commander');
 //const crypto = require('crypto');
-const { mint, importFlow, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, 
+const { mint, importFlow, generateNametagTokenId, createNametag, exportFlow, createTx, collectTokens, generateRecipientPointerAddr, 
     generateRecipientPubkeyAddr, getHashOf } = require('./state_machine.js');
 const { JSONRPCTransport } = require('@unicitylabs/shared/client/http_client.js');
 const { SignerEC } = require('@unicitylabs/shared/signer/SignerEC.js');
@@ -23,6 +23,39 @@ program
   .name('token_manager.js')
   .description('CLI app for managing tokens by processing TX flows')
   .version('1.0.0');
+
+// Nametag token id command
+program
+  .command('nametag')
+  .description('Generate a nametag address')
+  .requiredOption('--name <name>', 'Nametag token name')
+  .action(async (options) => {
+//    try {
+      console.log('nametag'+generateNametagTokenId(options.name));
+//    } catch (error) {
+//      console.error(error.message);
+//    }
+  });
+
+program
+  .command('register')
+  .description('Registers a nametag token')
+  .requiredOption('--name <name>', 'Any name. Note, you cannot take a name that have been registered already')
+  .requiredOption('--nonce <nonce>', 'Nonce value')
+  .option('--address <an_address>', 'Any address a token ownership can be set to')
+  .option('--data <json_string>', 'A data object represented as JSON string')
+  .option('-update', 'Enable update mode')
+  .action(async (options) => {
+//    try {
+      const nonce = validateOrConvert('nonce', options.nonce);
+      const token_data = options.data?options.data:options.address?`{"dest_ref": "${options.address}"}`:"";
+      const token = await createNametag(options.name, token_data, secret, new JSONRPCTransport(provider_url));
+      console.log(exportFlow(token, null, true));
+//    } catch (error) {
+//      console.error(error.message);
+//    }
+  });
+
 
 // Mint command
 program
@@ -110,7 +143,7 @@ program
 
 
 // Receive command
-program
+/*program
   .command('receive')
   .description('Receive a token')
   .option('--data <json_string>', 'A data object for the recipient state, represented as JSON string')
@@ -123,6 +156,34 @@ program
       const token_data = options.data;
 
       const token = await importFlow(flowJson, secret, nonce, token_data);
+
+      console.log(exportFlow(token, null, true));
+//    } catch (error) {
+//      console.error(error.message);
+//    }
+  });*/
+
+
+// Receive command
+program
+  .command('receive')
+  .description('Receive a token')
+  .option('--data <json_string>', 'A data object for the recipient state, represented as JSON string')
+  .option('--nonce <nonce>', 'Nonce value')
+  .action(async (options) => {
+//    try {
+      const nonce = validateOrConvert('nonce', options.nonce);
+//      const flowJson = await getStdin();
+      const stdinStr = await getStdin();
+      const delimeter = '### NAMETAG ###';
+      const stdinstrs = stdinStr.includes(delimeter)?stdinStr.split(delimeter):stdinStr;
+      const flowJson = Array.isArray(stdinstrs)?stdinstrs[0]:stdinstrs;
+      const flowNametag = Array.isArray(stdinstrs)?stdinstrs[1]:undefined;
+      const flow = JSON.parse(flowJson);
+      const token_data = options.data;
+      const nameTagId = flowNametag?JSON.parse(flowNametag).token?.tokenId:undefined;
+
+      const token = await importFlow(flowJson, secret, nonce, token_data, nameTagId?{['nametag_'+nameTagId]:JSON.parse(flowNametag)}:undefined);
 
       console.log(exportFlow(token, null, true));
 //    } catch (error) {

@@ -2,7 +2,7 @@
 
 cd ../
 
-# Scan the `txf` folder for .txt files
+# Scan the `txf` folder for .txf files
 files=($(ls txf/*.txf 2>/dev/null))
 
 # Check if there are any files to process
@@ -17,7 +17,7 @@ for i in "${!files[@]}"; do
     echo "$((i + 1)). ${files[$i]}"
 done
 
-read -p "Select a file by its number: " choice
+read -p "Select a token file by its number: " choice
 
 # Validate the user's choice
 if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -le 0 ] || [ "$choice" -gt ${#files[@]} ]; then
@@ -42,6 +42,36 @@ else
     nonce_option=""
 fi
 
+
+# Scan the `txf` folder for the nametag .txf files
+nametag_files=($(ls txf/nametag_*.txf 2>/dev/null))
+
+# Check if there are any files to process
+if [ ${#nametag_files[@]} -eq 0 ]; then
+    export stdinput_str=$(cat $selected_file)
+else
+
+    # List files and ask the user to choose one by its order number
+    echo "Available nametag files:"
+    for i in "${!nametag_files[@]}"; do
+	echo "$((i + 1)). ${nametag_files[$i]}"
+    done
+
+    read -p "Select a nametag token file by its number or empty to skip: " nametag_choice
+
+    # Validate the user's choice
+    if ! [[ "$nametag_choice" =~ ^[0-9]+$ ]] || [ "$nametag_choice" -le 0 ] || [ "$nametag_choice" -gt ${#nametag_files[@]} ]; then
+	echo "No nametag selected"
+        export stdinput_str=$(cat $selected_file)
+    else
+	# Get the selected nametag file
+        selected_nametag_file="${nametag_files[$((nametag_choice - 1))]}"
+        export stdinput_str=$(cat $selected_file; echo '### NAMETAG ###'; cat $selected_nametag_file)
+    fi
+
+fi
+
+
 # Prompt for user secret
 read -sp "Enter User Secret: " user_secret
 echo
@@ -49,8 +79,10 @@ echo
 # Set the SECRET environment variable for the local context
 export SECRET="$user_secret"
 
+
+
 # Execute the command and capture the output
-if output=$(cat $selected_file | ./token_manager.js receive "$token_data_option" $nonce_option); then
+if output=$(echo $stdinput_str | ./token_manager.js receive "$token_data_option" $nonce_option); then
 
     echo "$output"
 

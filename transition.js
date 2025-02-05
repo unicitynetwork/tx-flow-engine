@@ -1,7 +1,7 @@
 "use strict";
 const { objectHash } = require('@unicitylabs/shared/hasher/sha256hasher.js').SHA256Hasher;
 const { calculateStateHash, calculateExpectedPointer, calculateExpectedPointerFromPubAddr, 
-    calculatePayload, resolveReference } = require('@unicitylabs/shared');
+    calculatePayload, resolveReference, destRefFromNametag } = require('@unicitylabs/shared');
 const { OK, DEST_MISMATCH, DATA_MISMATCH, PAYLOAD_MISMATCHED } = require('@unicitylabs/shared');
 
 class Transition {
@@ -13,16 +13,20 @@ class Transition {
 	this.destination = destination;
     }
 
-    async execute(){
-	const status = await this.source.verify(this.input); // unlock
+    execute(nametagVerifier){
+	const status = this.source.verify(this.input); // unlock
 	if(status != OK)return status;
-	const dataStatus = await this.validateData();
+	const dataStatus = this.validateData();
 	if(dataStatus != OK)return dataStatus;
-	const { pointer, pubkey } = resolveReference(this.input.dest_ref);
+	const { nametag } = resolveReference(this.input.dest_ref);
+	const dest_ref = nametag?destRefFromNametag(nametag,
+	    Object.fromEntries(Object.entries(this.destination.aux.nametags).map(([key, value]) => [key, nametagVerifier(value)]))
+    	    ):this.input.dest_ref;
+	const { pointer, pubkey } = resolveReference(dest_ref);
 	if(pubkey)
 	    if(pubkey !== this.destination.challenge.pubkey)
 		return DEST_MISMATCH;
-	const expectedDestPointer = await calculateExpectedPointer({token_class_id: this.destination.challenge.tokenClass, 
+	const expectedDestPointer = calculateExpectedPointer({token_class_id: this.destination.challenge.tokenClass, 
 	    sign_alg: this.destination.challenge.sign_alg, 
 	    hash_alg: this.destination.challenge.hash_alg, 
 	    pubkey: this.destination.challenge.pubkey, 
@@ -38,13 +42,13 @@ class Transition {
 	    sourceState: this.source.calculateStateHash()
 	}):pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
-	const expectedPayload = await calculatePayload(this.source,
+	const expectedPayload = calculatePayload(this.source,
 	    this.input.dest_ref, this.input.salt, this.input.dataHash);
 	if(this.input.path[this.input.path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;
 	return OK;
     }
 
-    async validateData(){
+    validateData(){
 	if(!this.destination.data)
 	    if(!this.input.dataHash)
 		return OK;

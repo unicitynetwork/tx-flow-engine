@@ -10,7 +10,7 @@ const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, cal
 class Token {
 
     constructor({ token_id, token_class_id, token_value, data, sign_alg, hash_alg, mint_proofs, mint_request,
-	    mint_salt, pubkey, nonce, transitions }){
+	    mint_salt, pubkey, nonce, transitions, nametagVerifier }){
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
@@ -20,10 +20,11 @@ class Token {
 	this.genesis = new State(new ChallengePubkey(this.tokenClass, this.tokenId, sign_alg, hash_alg, pubkey, nonce), 
 	    undefined, data);
 	this.transitions = transitions;
+	this.nametagVerifier = nametagVerifier;
     }
 
-    async init(){
-	const genesisStatus = await this.validateGenesis();
+    init(){
+	const genesisStatus = this.validateGenesis();
 	if(genesisStatus != OK)
 	    throw new Error(`Error in mint: ${genesisStatus}`);
 	this.state = this.genesis;
@@ -41,11 +42,11 @@ class Token {
 		this.transitions[i].destination.data);
 	    this.transitions[i] = new Transition(this.transitions[i].tokenId, source, this.transitions[i].input, 
 		destination);
-	    await this.updateState(this.transitions[i]);
+	    this.updateState(this.transitions[i]);
 	}
     }
 
-    async applyTx(tx, destination){
+    applyTx(tx, destination){
 	if(tx.tokenId != this.tokenId)
 	    throw new Error("Token ID in TX does not match this token ID");
 	const tx_source = new State(
@@ -57,25 +58,25 @@ class Token {
 	    tx.source.data
 	);
 	const transition = new Transition(tx.tokenId, tx_source, tx.input, destination);
-	await this.updateState(transition);
+	this.updateState(transition);
 	this.transitions.push(transition);
     }
 
-    async updateState(transition){
-	if((await transition.source.calculateStateHash()) != (await this.state.calculateStateHash()))
+    updateState(transition){
+	if(transition.source.calculateStateHash() != this.state.calculateStateHash())
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: source state does not match the token\s current state`);
-	const status = await transition.execute();
+	const status = transition.execute(this.nametagVerifier);
 	if(status != OK)
 	    throw new Error(`Error executing transition ${transition.input.path.requestId}: ${status}`);
 	this.state = transition.destination;
     }
 
-    async validateGenesis(){
-	const genesisRequestId = await calculateGenesisRequestId(this.tokenId);
+    validateGenesis(){
+	const genesisRequestId = calculateGenesisRequestId(this.tokenId);
 	const status = verifyInclusionProofs(this.mintProofs.path, genesisRequestId);
 	if(status != OK)return status;
 	const l = this.mintProofs.path.length-1;
-	const expectedDestPointer = await calculateExpectedPointer({token_class_id: this.tokenClass,
+	const expectedDestPointer = calculateExpectedPointer({token_class_id: this.tokenClass,
 	    sign_alg: this.genesis.challenge.sign_alg,
 	    hash_alg: this.genesis.challenge.hash_alg,
 	    pubkey: this.genesis.challenge.pubkey,
@@ -83,7 +84,7 @@ class Token {
 	});
 	const destPointer = resolveReference(this.mintRequest.dest_ref).pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
-	const expectedPayload = await calculateMintPayload(this.tokenId, this.tokenClass,
+	const expectedPayload = calculateMintPayload(this.tokenId, this.tokenClass,
 	    this.tokenValue, this.genesis.data?objectHash(this.genesis.data):'', this.mintRequest.dest_ref, this.mintSalt);
 	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
