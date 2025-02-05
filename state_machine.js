@@ -1,8 +1,8 @@
 "use strict";
 const { DEFAULT_LOCAL_GATEWAY, DEFAULT_TEST_GATEWAY, calculateStateHash, calculatePointer, calculateExpectedPointer, calculateGenesisStateHash, 
-     calculateMintPayload, resolveReference, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
+     calculateMintPayload, resolveReference, destRefFromNametag, getMinterProvider, calculatePayload, calculatePubPointer, calculatePubAddr, calculatePubkey, 
     generateRecipientPointerAddr, generateRecipientPubkeyAddr,
-    getTxSigner, getPubKey, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex } = require('@unicitylabs/shared');
+    getTxSigner, getPubKey, isUnspent, confirmOwnership, validateOrConvert, generateRandom256BitHex, stringToHex } = require('@unicitylabs/shared');
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Token } = require('./token.js');
@@ -12,6 +12,8 @@ const { hash, objectHash } = require('@unicitylabs/shared/hasher/sha256hasher.js
 const { UnicityProvider } = require('@unicitylabs/shared/provider/UnicityProvider.js');
 const { JSONRPCTransport } = require('@unicitylabs/shared/client/http_client.js');
 const { TokenPool } = require('./tokenpool.js');
+
+const NAMETAG_TOKEN_CLASS = hash(stringToHex("NAMETAG_TOKEN_CLASS"));
 
 async function mint({
     token_id,
@@ -46,7 +48,9 @@ async function mint({
 async function createTx(token, dest_ref, salt, secret, transport, dataHash){
     const stateHash = await token.state.calculateStateHash();
     const payload = await calculatePayload(token.state, dest_ref, salt, dataHash);
-    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
+    const signer = getTxSigner(secret, token.state.aux?.salt_sig?undefined:token.state.challenge.nonce);
+    if(token.state?.challenge?.pubkey !== signer.getPubKey())
+	throw new Error("Failed to unlock token "+token.tokenId+". Pubkey in state does not match the provider key");
     const provider = new UnicityProvider(transport, signer);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
@@ -58,12 +62,25 @@ function importTx(token, tx, destination){
     token.applyTx(tx, destination);
 }
 
+function generateNametagTokenId(name){
+    return hash(stringToHex("NAMETAG_"+name));
+}
+
+async function createNametag(name, data, secret, transport){
+    const token_id = generateNametagTokenId(name);
+    const nonce = generateRandom256BitHex();
+    return await mint({ token_id, token_class_id: NAMETAG_TOKEN_CLASS, 
+    token_value: "0", token_data: data, secret, nonce,  
+    mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
+    transport });
+}
+
 function exportFlow(token, transaction, pretify){
     const flow = {token, transaction}
     return pretify?JSON.stringify(flow, null, 4):JSON.stringify(flow);
 }
 
-async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
+function importFlow(tokenTransitionFlow, secret, nonce, dataJson, nametagTokens){
     const flow = JSON.parse(tokenTransitionFlow);
     const data = dataJson?JSON.parse(dataJson):undefined;
     const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
@@ -72,10 +89,14 @@ async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
 	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, 
 	pubkey: flow.token.genesis.challenge.pubkey,
 	nonce: flow.token.genesis.challenge.nonce,
-	transitions: flow.token.transitions});
-    await token.init();
+	transitions: flow.token.transitions, nametagVerifier: importNametag});
+    token.init();
     if(flow.transaction && secret){
-	const { pubkey } = resolveReference(flow.transaction.input.dest_ref);
+	const { nametag } = resolveReference(flow.transaction.input.dest_ref);
+	const dest_ref = nametag?destRefFromNametag(nametag, 
+	    Object.fromEntries(Object.entries(nametagTokens).map(([key, value]) => [key, importNametag(value)]))
+	    ):flow.transaction.input.dest_ref;
+	const { pubkey } = resolveReference(dest_ref);
 	if(!nonce && !pubkey)
 	    throw new Error("Cannot import flow with transaction: nonce of the state for the transaction is missing");
 	const signer = getTxSigner(secret, nonce);
@@ -88,15 +109,20 @@ async function importFlow(tokenTransitionFlow, secret, nonce, dataJson){
 	    flow.transaction.source.challenge.pubkey, flow.transaction.source.challenge.nonce), flow.transaction.source.aux, 
 	    flow.transaction.source.data);
 	const destination = new State(new ChallengePubkey(flow.token.tokenClass, flow.token.tokenId, 'secp256k1', 'sha256', 
-	    sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), salt_sig?{salt_sig}:undefined, data);
-	await token.applyTx(flow.transaction, destination);
+	    sigPubkey, salt_sig?hash(source.calculateStateHash()+salt_sig):nonce), {salt_sig: (salt_sig?salt_sig:undefined), nametags: nametagTokens}, data);
+	token.applyTx(flow.transaction, destination);
     }
     return token;
 }
 
+function importNametag(nametagFlow){
+//	console.log(JSON.parse(nametagFlowJson));
+    return nametagFlow?importFlow(JSON.stringify(nametagFlow)):undefined;
+}
+
 async function getTokenStatus(token, secret, transport){
     const stateHash = await token.state.calculateStateHash();
-    const signer = getTxSigner(secret, token.state.aux?undefined:token.state.challenge.nonce);
+    const signer = getTxSigner(secret, token.state.aux?.salt_sig?undefined:token.state.challenge.nonce);
     const provider = new UnicityProvider(transport, signer);
     const isLatestState = await isUnspent(provider, stateHash);
     const isOwner = await confirmOwnership(token, signer);
@@ -190,6 +216,8 @@ module.exports = {
     importTx,
     exportFlow,
     importFlow,
+    generateNametagTokenId,
+    createNametag,
     getTokenStatus,
     collectTokens,
     getHTTPTransport,

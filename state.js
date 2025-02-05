@@ -5,7 +5,7 @@ class State {
 
     constructor(challenge, aux, data) {
 	this.challenge = challenge;
-	this.aux = aux;
+	this.aux = aux?(Object.keys(aux)===0?undefined:aux):undefined;
 	this.data = data;
     }
 
