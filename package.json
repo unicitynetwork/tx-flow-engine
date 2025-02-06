@@ -1,6 +1,6 @@
 {
   "name": "@unicitylabs/tx-flow-engine",
-  "version": "1.3.0",
+  "version": "1.3.2",
   "description": "Generic State Transition Flow engine for value-carrier agents",
   "main": "state_machine.js",
   "scripts": {
@@ -14,7 +14,7 @@
   "license": "ISC",
   "homepage": "https://unicitynetwork.github.io/tx-flow-engine/",
   "dependencies": {
-    "@unicitylabs/shared": "^1.2.6",
+    "@unicitylabs/shared": "^1.2.8",
     "buffer": "^6.0.3",
     "commander": "^12.1.0",
     "crypto-js": "^4.2.0",
