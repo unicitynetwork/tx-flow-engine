@@ -1,44 +1,84 @@
-const path = require('path');
-const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
+const path = require("path");
+const webpack = require("webpack");
+const NodePolyfillPlugin = require("node-polyfill-webpack-plugin");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
 
-module.exports = {
-    entry: './state_machine.js', // Replace with your main entry file
+module.exports = [
+  // Browser Build (txf.min.js)
+  {
+    entry: "./state_machine.js",
     output: {
-        filename: 'txf.min.js',
-        path: path.resolve(__dirname, 'docs'),
-        library: 'TXF', // The global variable for your library
-        libraryTarget: 'umd', // UMD format for browser and Node.js compatibility
-        globalObject: 'this', // Ensures compatibility in browser and Node.js
+      filename: "txf.min.js",
+      path: path.resolve(__dirname, "docs"),
+      library: "TXF", // The global variable for your library
+      libraryTarget: "umd", // UMD format for browser and Node.js compatibility
+      globalObject: "this", // Ensures compatibility in browser and Node.js
     },
-    mode: 'production', // Minifies the output
-//    mode: 'development',
+    mode: "development", // Change to 'production' for minified output
     module: {
-        rules: [
-            {
-                test: /\.js$/,
-                exclude: /node_modules/,
-                use: {
-                    loader: 'babel-loader',
-                    options: {
-                        presets: ['@babel/preset-env'],
-                    },
-                },
+      rules: [
+        {
+          test: /\.js$/,
+          exclude: /node_modules/,
+          use: {
+            loader: "babel-loader",
+            options: {
+              presets: ["@babel/preset-env"],
             },
-        ],
+          },
+        },
+      ],
     },
     resolve: {
-        fullySpecified: false, // Resolves mixed module types (CommonJS/ESM)
-	fallback: {
-            buffer: require.resolve('buffer/'),
-        },
+      fullySpecified: false,
+      fallback: {
+        buffer: require.resolve("buffer/"),
+      },
     },
-    target: ['web', 'es5'], // Ensures browser and ES5 compatibility
+    target: ["web", "es5"],
     plugins: [
-	new NodePolyfillPlugin(),
-	new HtmlWebpackPlugin({
-            template: './src/ipts.html', // HTML template
-            inject: 'body', // Automatically include the JS in the <body>
-        }),
+      new NodePolyfillPlugin(),
+      new HtmlWebpackPlugin({
+        template: "./src/ipts.html",
+        inject: "body",
+      }),
     ],
-};
+  },
+
+  // Node Build (txf.node.js)
+ {
+  entry: "./state_machine.js",
+  output: {
+    filename: "txf.node.js",
+    path: path.resolve(__dirname, "docs"),
+    library: "TXF",
+    libraryTarget: "umd",
+    globalObject: "this",
+  },
+  mode: "development",
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: {
+          loader: "babel-loader",
+          options: {
+            presets: ["@babel/preset-env"],
+          },
+        },
+      },
+    ],
+  },
+  resolve: {
+    fullySpecified: false,
+    fallback: {
+      buffer: require.resolve("buffer/"),
+    },
+  },
+  target: ["web", "es5"],  // <-- Ensure this targets Node.js only
+  plugins: [
+    new NodePolyfillPlugin(),
+  ],
+ },
+];

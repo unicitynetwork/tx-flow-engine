@@ -115,6 +115,11 @@ function importFlow(tokenTransitionFlow, secret, nonce, dataJson, nametagTokens)
     return token;
 }
 
+function extractMsg(tokenTransitionFlow){
+    const flow = JSON.parse(tokenTransitionFlow);
+    return flow?.transaction?.msg;
+}
+
 function importNametag(nametagFlow){
 //	console.log(JSON.parse(nametagFlowJson));
     return nametagFlow?importFlow(JSON.stringify(nametagFlow)):undefined;
@@ -216,6 +221,7 @@ module.exports = {
     importTx,
     exportFlow,
     importFlow,
+    extractMsg,
     generateNametagTokenId,
     createNametag,
     getTokenStatus,
