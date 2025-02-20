@@ -19,6 +19,7 @@ async function mint({
     token_id,
     token_class_id,
     token_value,
+    immutable_data,
     token_data,
     secret,
     nonce,
@@ -33,28 +34,28 @@ async function mint({
     const destPointerAddr = calculatePubPointer(await calculateExpectedPointer({token_class_id, sign_alg,
 	hash_alg, pubkey, nonce}));
     const data = token_data?JSON.parse(token_data):undefined;
-    const payload = await calculateMintPayload(token_id, token_class_id, token_value, data?objectHash(data):'', destPointerAddr,
+    const payload = await calculateMintPayload(token_id, token_class_id, token_value, immutable_data?JSON.parse(immutable_data):undefined, data?objectHash(data):'', destPointerAddr,
 	mint_salt);
     const mintProvider = getMinterProvider(transport, token_id);
     const { requestId, result } = await mintProvider.submitStateTransition(stateHash, payload);
     const { status, path } = await mintProvider.extractProofs(requestId);
 
-    const token = new Token({token_id, token_class_id, token_value, data, mint_proofs: { path },
+    const token = new Token({token_id, token_class_id, token_value, immutable_data: immutable_data?JSON.parse(immutable_data):undefined, data, mint_proofs: { path },
 	mint_request: { dest_ref: destPointerAddr }, mint_salt, transitions: [], sign_alg, hash_alg, pubkey, nonce });
     await token.init();
     return token;
 }
 
-async function createTx(token, dest_ref, salt, secret, transport, dataHash){
+async function createTx(token, dest_ref, salt, secret, transport, dataHash, msg){
     const stateHash = await token.state.calculateStateHash();
-    const payload = await calculatePayload(token.state, dest_ref, salt, dataHash);
+    const payload = await calculatePayload(token.state, dest_ref, salt, dataHash, objectHash(msg));
     const signer = getTxSigner(secret, token.state.aux?.salt_sig?undefined:token.state.challenge.nonce);
     if(token.state?.challenge?.pubkey !== signer.getPubKey())
 	throw new Error("Failed to unlock token "+token.tokenId+". Pubkey in state does not match the provider key");
     const provider = new UnicityProvider(transport, signer);
     const { requestId, result } = await provider.submitStateTransition(stateHash, payload);
     const { status, path } = await provider.extractProofs(requestId);
-    const input = new TxInput(path, dest_ref, salt, dataHash);
+    const input = new TxInput(path, dest_ref, salt, dataHash, msg);
     return new Transaction(token.tokenId, token.state, input, dest_ref);
 }
 
@@ -117,7 +118,7 @@ function importFlow(tokenTransitionFlow, secret, nonce, dataJson, nametagTokens)
 
 function extractMsg(tokenTransitionFlow){
     const flow = JSON.parse(tokenTransitionFlow);
-    return flow?.transaction?.msg;
+    return flow?.transaction?.input?.msg;
 }
 
 function importNametag(nametagFlow){

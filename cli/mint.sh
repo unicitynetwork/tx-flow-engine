@@ -14,7 +14,14 @@ token_class=${token_class:-unicity_test_coin}
 read -p "Enter Token Value (default: 10000000000000000000): " token_value
 token_value=${token_value:-1000000000000000000}
 
-read -p "Enter Token Data (optional): " token_data
+read -p "Enter Token Immutable Data (optional): " immutable_data
+if [ -n "$immutable_data" ]; then
+    immutable_data_option="--immutable_data=$immutable_data"
+else
+    immutable_data_option=""
+fi
+
+read -p "Enter Token Genesis State Data (optional): " token_data
 if [ -n "$token_data" ]; then
     token_data_option="--data=$token_data"
 else
@@ -31,7 +38,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command and capture the output
-output=$(./token_manager.js mint --token_id "$token_id" --token_class "$token_class" --token_value "$token_value" "$token_data_option" --nonce "$nonce")
+output=$(./token_manager.js mint --token_id "$token_id" --token_class "$token_class" --token_value "$token_value" "$immutable_data_option" "$token_data_option" --nonce "$nonce")
 
 # Create a filename based on token class and token ID
 filename="txf/${token_class}_${token_id}.txf"
