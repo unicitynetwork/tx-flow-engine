@@ -132,4 +132,5 @@ dist
 
 test_tokens
 *.txf
+*.bac
 txf
