@@ -9,11 +9,12 @@ const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, cal
 
 class Token {
 
-    constructor({ token_id, token_class_id, token_value, data, sign_alg, hash_alg, mint_proofs, mint_request,
+    constructor({ token_id, token_class_id, token_value, immutable_data, data, sign_alg, hash_alg, mint_proofs, mint_request,
 	    mint_salt, pubkey, nonce, transitions, nametagVerifier }){
 	this.tokenId = token_id;
 	this.tokenClass = token_class_id;
 	this.tokenValue = token_value;
+	this.tokenData = immutable_data;
 	this.mintProofs = mint_proofs;
 	this.mintRequest = mint_request;
 	this.mintSalt = mint_salt;
@@ -85,7 +86,7 @@ class Token {
 	const destPointer = resolveReference(this.mintRequest.dest_ref).pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = calculateMintPayload(this.tokenId, this.tokenClass,
-	    this.tokenValue, this.genesis.data?objectHash(this.genesis.data):'', this.mintRequest.dest_ref, this.mintSalt);
+	    this.tokenValue, this.tokenData, this.genesis.data?objectHash(this.genesis.data):'', this.mintRequest.dest_ref, this.mintSalt);
 	if(this.mintProofs.path[l].payload != expectedPayload)return PAYLOAD_MISMATCH;
 	return OK;
     }

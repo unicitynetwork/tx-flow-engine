@@ -38,6 +38,14 @@ else
     token_data_hash_option=""
 fi
 
+read -p "Enter Transaction Message (optional): " tx_msg
+if [ -n "$tx_msg" ]; then
+    tx_msg_option="--msg=$tx_msg"
+else
+    tx_msg_option=""
+fi
+
+
 read -sp "Enter User Secret: " user_secret
 echo
 
@@ -45,7 +53,7 @@ echo
 export SECRET="$user_secret"
 
 # Execute the command with the selected file as stdin
-if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_address" "$token_data_hash_option"); then
+if output=$(cat "$selected_file" | ./token_manager.js send --dest "$destination_address" "$tx_msg_option" "$token_data_hash_option"); then
     # Rename the file after successful execution
     timestamp=$(date +%s)
     new_filename="${selected_file}.spent.${timestamp}"

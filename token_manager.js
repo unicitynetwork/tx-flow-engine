@@ -64,7 +64,8 @@ program
   .requiredOption('--token_id <token_id>', 'ID of the token')
   .requiredOption('--token_class <token_class_id>', 'Class of the token')
   .requiredOption('--token_value <token_value>', 'Value of the token (any string)')
-  .option('--data <json_string>', 'A data object represented as JSON string')
+  .option('--immutable_data <json_string>', 'An immutable token data object represented as JSON string ')
+  .option('--data <json_string>', 'A genesis state-only data object represented as JSON string')
   .requiredOption('--nonce <nonce>', 'Nonce value')
   .action(async (options) => {
 //    try {
@@ -72,7 +73,8 @@ program
       const token_class = validateOrConvert('token_class', options.token_class);
       const nonce = validateOrConvert('nonce', options.nonce);
       const token_data = options.data;
-      const token = await mint({ token_id, token_class_id: token_class, 
+      const immutable_data = options.immutable_data;
+      const token = await mint({ token_id, token_class_id: token_class, immutable_data,
 	token_value: options.token_value, token_data, secret, nonce,  
 	mint_salt: generateRandom256BitHex(), sign_alg: 'secp256k1', hash_alg: 'sha256',
 	transport: new JSONRPCTransport(provider_url)});
@@ -88,14 +90,15 @@ program
   .description('Send a token')
   .requiredOption('--dest <dest_pointer>', 'Destination pointer for the token')
   .option('--datahash <dest_data_hash>', 'Hash of the data at the recipient state')
+  .option('--msg <json_string>', 'A message object represented as JSON string to be included in the transaction')
   .action(async (options) => {
     const token = await importFlow(await getStdin());
     const destPointer = options.dest;
     const destDataHash  = options.datahash;
     const salt = generateRandom256BitHex();
-
+    const msg = options.msg;
     const transport = new JSONRPCTransport(provider_url);
-    const tx = await createTx(token, destPointer, salt, secret, transport, destDataHash);
+    const tx = await createTx(token, destPointer, salt, secret, transport, destDataHash, msg?JSON.parse(msg):undefined);
     console.log(exportFlow(token, tx, true));
   });
 
