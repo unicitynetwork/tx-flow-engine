@@ -48,7 +48,7 @@ async function mint({
 
 async function createTx(token, dest_ref, salt, secret, transport, dataHash, msg){
     const stateHash = await token.state.calculateStateHash();
-    const payload = await calculatePayload(token.state, dest_ref, salt, dataHash, objectHash(msg));
+    const payload = await calculatePayload(token.state, dest_ref, salt, dataHash, msg?objectHash(msg):undefined);
     const signer = getTxSigner(secret, token.state.aux?.salt_sig?undefined:token.state.challenge.nonce);
     if(token.state?.challenge?.pubkey !== signer.getPubKey())
 	throw new Error("Failed to unlock token "+token.tokenId+". Pubkey in state does not match the provider key");
@@ -85,7 +85,7 @@ function importFlow(tokenTransitionFlow, secret, nonce, dataJson, nametagTokens)
     const flow = JSON.parse(tokenTransitionFlow);
     const data = dataJson?JSON.parse(dataJson):undefined;
     const token = new Token({token_id: flow.token.tokenId, token_class_id: flow.token.tokenClass, 
-	token_value: flow.token.tokenValue, data: flow.token.genesis.data,  sign_alg: flow.token.genesis.challenge.sign_alg,
+	token_value: flow.token.tokenValue, immutable_data: flow.token.tokenData, data: flow.token.genesis.data,  sign_alg: flow.token.genesis.challenge.sign_alg,
 	hash_alg: flow.token.genesis.challenge.hash_alg,  mint_proofs: flow.token.mintProofs,
 	mint_request: flow.token.mintRequest, mint_salt: flow.token.mintSalt, 
 	pubkey: flow.token.genesis.challenge.pubkey,

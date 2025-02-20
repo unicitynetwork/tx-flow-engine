@@ -43,7 +43,7 @@ class Transition {
 	}):pointer;
 	if(destPointer != expectedDestPointer)return DEST_MISMATCH;
 	const expectedPayload = calculatePayload(this.source,
-	    this.input.dest_ref, this.input.salt, this.input.dataHash, this.input.msg?objectHash(this.input.msg));
+	    this.input.dest_ref, this.input.salt, this.input.dataHash, this.input.msg?objectHash(this.input.msg):undefined);
 	if(this.input.path[this.input.path.length-1].payload != expectedPayload)return PAYLOAD_MISMATCHED;
 	return OK;
     }

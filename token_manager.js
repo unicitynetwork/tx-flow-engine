@@ -90,14 +90,15 @@ program
   .description('Send a token')
   .requiredOption('--dest <dest_pointer>', 'Destination pointer for the token')
   .option('--datahash <dest_data_hash>', 'Hash of the data at the recipient state')
+  .option('--msg <json_string>', 'A message object represented as JSON string to be included in the transaction')
   .action(async (options) => {
     const token = await importFlow(await getStdin());
     const destPointer = options.dest;
     const destDataHash  = options.datahash;
     const salt = generateRandom256BitHex();
-
+    const msg = options.msg;
     const transport = new JSONRPCTransport(provider_url);
-    const tx = await createTx(token, destPointer, salt, secret, transport, destDataHash);
+    const tx = await createTx(token, destPointer, salt, secret, transport, destDataHash, msg?JSON.parse(msg):undefined);
     console.log(exportFlow(token, tx, true));
   });
 
