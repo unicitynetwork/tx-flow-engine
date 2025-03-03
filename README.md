@@ -1,10 +1,26 @@
-# Transaction Flow Engine
-This is offchain token transaction framework. It follows the paradigm, where toknes are being managed, stored and transferred offchain (on users' premises or in cloud, outside of the blockchain ledger) and single-spend proofs only are being generated on-chain. 
-Here, token is a stand-alone entity containing all the info and cryptographic proofs attesting current token's state (like, ownership, value, etc.). Token's state change is accompanied by consulting with the blockchain infrastructure (Unicity) that should produce the proof of single spend of the token from its current 
- cryptographically verifiable statement that the given source state has been changed to a new given state and there were no other transitions from the source state before. Cryptographic commitments about the token spent contain no info about the token, its initial state and 
-its destination state as well as no info about the nature of the transaction itself. I.e., when someone observes traffic between clients and Unicity infrastructure, it is not possible to say whether submited commitments refer to token transactions or to some 
-completely other kinds of processes. All the transaction commitments are being aggregated into global distributed hash tree data structure rooted in the Unicity blockchain. In this manner, we have horizontally scalable on-demand blockchain infrastructure capable for
-accomodating millions of transaction commitments per block.
+## Transaction Flow Engine: Scalable Off-Chain Token Transactions
+
+The **Transaction Flow Engine** is an off-chain token transaction framework designed to manage, store, and transfer tokens outside the blockchain ledger—either on users’ premises or in the cloud. Instead of recording every transaction on-chain, only **single-spend proofs** are generated and submitted to the blockchain.
+
+### How It Works
+
+- Each **token is a self-contained entity** that carries all necessary information and cryptographic proofs about its state, including ownership and value.
+- When a token's state changes, it consults the Unicity blockchain infrastructure, which verifies that:
+  - The token has transitioned from a valid previous state to a new state.
+  - No other transactions have occurred from the original state, ensuring single-spend validity.
+- Cryptographic commitments **do not** reveal any details about the token itself, its initial or final state, or the nature of the transaction, ensuring **privacy and confidentiality**.
+
+### Privacy & Security
+
+- The system guarantees that observers cannot distinguish token transactions from other types of processes.
+- All transaction commitments are aggregated into a **global distributed hash tree**, rooted in the Unicity blockchain.
+
+### Scalability
+
+- Enables a **horizontally scalable, on-demand blockchain infrastructure**.
+- Capable of handling **millions of transaction commitments per block**, ensuring efficiency and scalability.
+
+This framework ensures a highly efficient and private token transaction system while leveraging blockchain only for necessary validation steps.
 
 ## Web GUI interface
 [Token GUI stand-alone page](https://unicitynetwork.github.io/tx-flow-engine/)
