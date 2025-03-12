@@ -1,13 +1,13 @@
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 
 import { TokenId } from './TokenId.js';
-import { Pointer } from '../Pointer.js';
 import { TokenState } from './TokenState.js';
 import { MintTransition } from '../transition/MintTransition.js';
 import { Transition } from '../transition/Transition.js';
 import { TokenType } from './TokenType.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
+import { Pointer } from '../address/Pointer.js';
 
 export class Token {
   public constructor(

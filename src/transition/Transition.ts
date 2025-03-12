@@ -1,10 +1,10 @@
 import { DataHasher, HashAlgorithm } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 
-import { Pointer } from '../Pointer.js';
 import { Token } from '../token/Token.js';
 import { TokenState } from '../token/TokenState.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
+import { Pointer } from '../address/Pointer.js';
 
 export class Transition {
   private constructor(

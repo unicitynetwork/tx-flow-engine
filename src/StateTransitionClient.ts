@@ -5,13 +5,13 @@ import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 
 import { AggregatorClient } from './api/AggregatorClient.js';
 import { UnicityProvider } from './api/UnicityProvider.js';
-import { Pointer } from './Pointer.js';
 import { PublicKeyPredicate } from './predicate/PublicKeyPredicate.js';
 import { Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
 import { TokenState } from './token/TokenState.js';
 import { MintTransition } from './transition/MintTransition.js';
 import { TokenType } from './token/TokenType.js';
+import { Pointer } from './address/Pointer.js';
 
 // const MINT_SUFFIX = await new DataHasher(HashAlgorithm.SHA256).update(new TextEncoder().encode('TOKENID')).digest();
 const MINT_SUFFIX = HexConverter.decode('AAAAAA');
@@ -87,5 +87,5 @@ export class StateTransitionClient {
 }
 
  class Transaction {
-  
+
  }

@@ -1,10 +1,10 @@
 import { DataHasher, HashAlgorithm } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 
-import { Pointer } from '../Pointer.js';
 import { TokenId } from '../token/TokenId.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { TokenType } from '../token/TokenType.js';
+import { Pointer } from '../address/Pointer.js';
 
 export class MintTransition {
   private constructor(
