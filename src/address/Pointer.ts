@@ -1,8 +1,9 @@
 import { DataHasher, HashAlgorithm } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
-import { TokenType } from '../token/TokenType';
-import { AddressScheme } from '../IAddress';
+
+import { AddressScheme } from '../IAddress.js';
+import { TokenType } from '../token/TokenType.js';
 
 const textEncoder = new TextEncoder();
 
@@ -54,6 +55,6 @@ export class Pointer {
   }
 
   public toString(): string {
-    return `Pointer[${HexConverter.encode(this._data)}]`
+    return `Pointer[${HexConverter.encode(this._data)}]`;
   }
 }

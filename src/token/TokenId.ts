@@ -1,4 +1,4 @@
-import { HexConverter } from "@unicitylabs/commons/lib/util/HexConverter.js";
+import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 export class TokenId {
   public constructor(private readonly _id: Uint8Array) {

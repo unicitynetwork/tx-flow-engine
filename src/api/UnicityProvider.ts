@@ -1,16 +1,12 @@
 import { Authenticator } from '@unicitylabs/commons/lib/api/Authenticator.js';
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
-import { DataHasher, HashAlgorithm } from '@unicitylabs/commons/lib/hash/DataHasher.js';
+import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { ISigningService } from '@unicitylabs/commons/lib/signing/ISigningService.js';
-import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
-import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { AggregatorClient } from './AggregatorClient.js';
-import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
-import { Transition } from '../transition/Transition.js';
-import { TokenState } from '../token/TokenState.js';
-import { MintTransition } from '../transition/MintTransition.js';
+import { MintTransaction } from '../transaction/MintTransaction.js';
+import { Transaction } from '../transaction/Transaction.js';
 
 interface IState {
   readonly hash: Uint8Array;
@@ -23,19 +19,19 @@ export class UnicityProvider {
     private readonly client: AggregatorClient,
   ) {}
 
-  public async submitStateTransition(
+  public async submitTransaction(
     sourceState: IState,
-    transition: Transition | MintTransition,
+    transaction: MintTransaction | Transaction,
   ): Promise<SubmitStateTransitionResponse> {
     // TODO: SigningService should not hash
-    return await this.client.submitStateTransition(
+    return await this.client.submitTransaction(
       await this.getRequestId(sourceState),
-      transition.hash,
-      await this.getAuthenticator(sourceState, transition),
+      transaction.hash,
+      await this.getAuthenticator(sourceState, transaction),
     );
   }
 
-  public async getInclusionProof(requestId: RequestId): Promise<InclusionProof> {
+  public getInclusionProof(requestId: RequestId): Promise<InclusionProof> {
     return this.client.getInclusionProof(requestId);
   }
 
@@ -43,12 +39,15 @@ export class UnicityProvider {
     return RequestId.create(this.signingService.publicKey, sourceState.hash);
   }
 
-  public async getAuthenticator(sourceState: IState, transition: Transition | MintTransition): Promise<Authenticator> {
+  public async getAuthenticator(
+    sourceState: IState,
+    transaction: MintTransaction | Transaction,
+  ): Promise<Authenticator> {
     return new Authenticator(
-      transition.hashAlgorithm,
+      transaction.hashAlgorithm,
       this.signingService.publicKey,
       this.signingService.algorithm,
-      await this.signingService.sign(transition.hash),
+      await this.signingService.sign(transaction.hash),
       sourceState.hash,
     );
   }

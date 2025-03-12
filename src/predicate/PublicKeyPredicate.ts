@@ -1,10 +1,10 @@
 import { InclusionProof, InclusionProofVerificationStatus } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { DataHasher, HashAlgorithm } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { ISigningService } from '@unicitylabs/commons/lib/signing/ISigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { IPredicate } from './IPredicate.js';
-import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 

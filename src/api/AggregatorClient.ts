@@ -1,9 +1,9 @@
 import { Authenticator } from '@unicitylabs/commons/lib/api/Authenticator.js';
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { JsonRpcHttpTransport } from '@unicitylabs/commons/lib/json-rpc/JsonRpcHttpTransport.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
-import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
 
 export class AggregatorClient {
@@ -12,7 +12,7 @@ export class AggregatorClient {
     this.transport = new JsonRpcHttpTransport(url);
   }
 
-  public async submitStateTransition(
+  public async submitTransaction(
     requestId: RequestId,
     payload: Uint8Array,
     authenticator: Authenticator,

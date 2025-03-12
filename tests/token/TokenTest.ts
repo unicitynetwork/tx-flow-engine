@@ -4,7 +4,7 @@ import { TokenType } from "../../src/token/TokenType.js";
 
 describe('Transition', function () {
   it('should verify the token latest state', async () => {
-    const client = new StateTransitionClient();
+    const client = new StateTransitionClient('https://gateway-test1.unicity.network:443');
     const token = await client.mint(
       TokenId.create(crypto.getRandomValues(new Uint8Array(32))), 
       TokenType.create(crypto.getRandomValues(new Uint8Array(32))),

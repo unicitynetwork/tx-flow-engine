@@ -1,7 +1,6 @@
 import { ISubmitStateTransitionResponseDto } from '@unicitylabs/commons/lib/api/ISubmitStateTransitionResponseDto.js';
-import { SubmitStateTransitionStatus } from '@unicitylabs/commons/lib/api/SubmitStateTransitionStatus.js';
-
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
+import { SubmitStateTransitionStatus } from '@unicitylabs/commons/lib/api/SubmitStateTransitionStatus.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 export class SubmitStateTransitionResponse {
