@@ -5,7 +5,7 @@ const { UnicityProvider, verifyInclusionProofs } = require('@unicitylabs/shared/
 const { State } = require('./state.js');
 const { ChallengePubkey } = require('./pubkey_challenge.js');
 const { Transition } = require('./transition.js');
-const { calculateGenesisRequestId, calculateStateHash, calculateMintPayload, calculateExpectedPointer, resolveReference } = require('@unicitylabs/shared');
+const { calculateGenesisRequestId, calculateMintPayload, calculateExpectedPointer, resolveReference } = require('@unicitylabs/shared');
 
 class Token {
 

@@ -1,0 +1,14 @@
+.idea/
+.github/
+
+.DS_Store
+.npmrc
+
+.eslintrc.json
+.prettierrc
+tsconfig.json
+jest.config.js
+
+tests/
+coverage/
+node_modules/
