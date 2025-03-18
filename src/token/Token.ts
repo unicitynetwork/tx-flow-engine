@@ -1,13 +1,30 @@
-import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import { IInclusionProofDto, InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { TokenId } from './TokenId.js';
-import { TokenState } from './TokenState.js';
+import { ITokenStateDto, TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
-import { Pointer } from '../address/Pointer.js';
-import { MintTransaction } from '../transaction/MintTransaction.js';
-import { Transaction } from '../transaction/Transaction.js';
+import { IAddress } from '../address/IAddress.js';
+import { IPredicate, IPredicateDto } from '../predicate/IPredicate.js';
+import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
+import { MintTransactionData } from '../transaction/MintTransactionData.js';
+import { TransactionData } from '../transaction/TransactionData.js';
+
+export interface IPredicateFactory {
+  create(data: IPredicateDto): Promise<IPredicate>;
+}
+
+export interface ITokenDto {
+  readonly id: string;
+  readonly type: string;
+  readonly data: string;
+  readonly inclusionProof: IInclusionProofDto;
+  readonly recipient: string;
+  readonly salt: string;
+  readonly state: ITokenStateDto;
+  readonly transactions: [ITransactionDto<MintTransactionData>, ...ITransactionDto<TransactionData>[]];
+}
 
 export class Token {
   public constructor(
@@ -15,10 +32,10 @@ export class Token {
     public readonly type: TokenType,
     public readonly _data: Uint8Array,
     public readonly inclusionProof: InclusionProof,
-    public readonly recipient: Pointer,
+    public readonly recipient: IAddress,
     public readonly _salt: Uint8Array,
     public readonly state: TokenState,
-    public readonly transactions: [MintTransaction, ...Transaction[]],
+    public readonly transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
     public readonly nametagVerifier: string,
   ) {
     this._data = new Uint8Array(_data);
@@ -31,6 +48,19 @@ export class Token {
 
   public get salt(): Uint8Array {
     return new Uint8Array(this._salt);
+  }
+
+  public toDto(): ITokenDto {
+    return {
+      data: HexConverter.encode(this._data),
+      id: this.id.toDto(),
+      inclusionProof: this.inclusionProof.toDto(),
+      recipient: this.recipient.toDto(),
+      salt: HexConverter.encode(this._salt),
+      state: this.state.toDto(),
+      transactions: this.transactions.map((transaction) => transaction.toDto()) as [ITransactionDto<MintTransactionData>, ...ITransactionDto<TransactionData>[]],
+      type: this.type.toDto(),
+    };
   }
 
   public toString(): string {

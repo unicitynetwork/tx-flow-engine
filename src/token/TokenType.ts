@@ -13,6 +13,10 @@ export class TokenType {
     return new Uint8Array(this._id);
   }
 
+  public toDto(): string {
+    return HexConverter.encode(this._id);
+  }
+
   public toString(): string {
     return `TokenType[${HexConverter.encode(this._id)}]`;
   }

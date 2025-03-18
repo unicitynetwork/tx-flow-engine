@@ -1,14 +1,19 @@
-import { DataHasher, HashAlgorithm } from '@unicitylabs/commons/lib/hash/DataHasher.js';
+import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
+import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
-import { AddressScheme } from '../IAddress.js';
+import { AddressScheme } from './IAddress.js';
 import { TokenType } from '../token/TokenType.js';
 
 const textEncoder = new TextEncoder();
 
-export class Pointer {
-  public constructor(private readonly _data: Uint8Array) {
+// TODO: Predicate is directly linked to address and authenticator
+export class OneTimeAddress {
+  public constructor(
+    public readonly hashAlgorithm: HashAlgorithm,
+    private readonly _data: Uint8Array,
+  ) {
     this._data = new Uint8Array(_data);
   }
 
@@ -16,13 +21,22 @@ export class Pointer {
     return new Uint8Array(this._data);
   }
 
-  public static async create(tokenType: TokenType, secret: Uint8Array, nonce: Uint8Array): Promise<Pointer> {
+  public get scheme(): AddressScheme {
+    return AddressScheme.ONE_TIME_ADDRESS;
+  }
+
+  public static async create(
+    tokenType: TokenType,
+    secret: Uint8Array,
+    nonce: Uint8Array,
+    hashAlgorithm: HashAlgorithm,
+  ): Promise<OneTimeAddress> {
     // Replace signing service with factory to create proper signing service
     const signingService = await SigningService.createFromSecret(secret, nonce);
-    return Pointer.createFromPublicKey(
+    return OneTimeAddress.createFromPublicKey(
       tokenType,
       signingService.algorithm,
-      signingService.hashAlgorithm,
+      hashAlgorithm,
       signingService.publicKey,
       nonce,
     );
@@ -31,11 +45,11 @@ export class Pointer {
   public static async createFromPublicKey(
     tokenType: TokenType,
     algorithm: string,
-    hashAlgorithm: string,
+    hashAlgorithm: HashAlgorithm,
     publicKey: Uint8Array,
     nonce: Uint8Array,
-  ): Promise<Pointer> {
-    const hash = await new DataHasher(HashAlgorithm.SHA256)
+  ): Promise<OneTimeAddress> {
+    const hash = await new DataHasher(hashAlgorithm)
       .update(tokenType.encode())
       .update(await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest())
       .update(await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(hashAlgorithm)).digest())
@@ -43,18 +57,22 @@ export class Pointer {
       .update(nonce)
       .digest();
 
-    return new Pointer(hash);
+    return new OneTimeAddress(hashAlgorithm, hash);
   }
 
   public encode(): Uint8Array {
-    return textEncoder.encode(`${AddressScheme.POINTER}://${HexConverter.encode(this._data)}`);
+    return textEncoder.encode(this.toDto());
   }
 
-  public equals(recipient: Pointer): boolean {
+  public toDto(): string {
+    return `${this.scheme}://${HexConverter.encode(this._data)}`;
+  }
+
+  public equals(recipient: OneTimeAddress): boolean {
     return HexConverter.encode(this._data) === HexConverter.encode(recipient.data);
   }
 
   public toString(): string {
-    return `Pointer[${HexConverter.encode(this._data)}]`;
+    return `OneTimeAddress[${HexConverter.encode(this._data)}]`;
   }
 }

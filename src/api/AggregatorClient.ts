@@ -5,6 +5,7 @@ import { JsonRpcHttpTransport } from '@unicitylabs/commons/lib/json-rpc/JsonRpcH
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
+import { IAuthenticator } from '../IAuthenticator.js';
 
 export class AggregatorClient {
   private readonly transport: JsonRpcHttpTransport;
@@ -15,7 +16,7 @@ export class AggregatorClient {
   public async submitTransaction(
     requestId: RequestId,
     payload: Uint8Array,
-    authenticator: Authenticator,
+    authenticator: IAuthenticator,
   ): Promise<SubmitStateTransitionResponse> {
     const data = {
       authenticator: authenticator.toDto(),

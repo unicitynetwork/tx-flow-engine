@@ -39,7 +39,7 @@ module.exports = [
     plugins: [
       new NodePolyfillPlugin(),
       new HtmlWebpackPlugin({
-        template: "./src/ipts.html",
+        template: "./public/ipts.html",
         inject: "body",
       }),
     ],

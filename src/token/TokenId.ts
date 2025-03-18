@@ -9,6 +9,10 @@ export class TokenId {
     return new TokenId(id);
   }
 
+  public toDto(): string {
+    return HexConverter.encode(this._id);
+  }
+
   public encode(): Uint8Array {
     return new Uint8Array(this._id);
   }
