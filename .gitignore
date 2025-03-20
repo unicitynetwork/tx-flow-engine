@@ -134,3 +134,6 @@ test_tokens
 *.txf
 *.bac
 txf
+
+# jetbrains ide
+.idea

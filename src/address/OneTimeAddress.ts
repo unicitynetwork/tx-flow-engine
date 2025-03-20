@@ -8,7 +8,6 @@ import { TokenType } from '../token/TokenType.js';
 
 const textEncoder = new TextEncoder();
 
-// TODO: Predicate is directly linked to address and authenticator
 export class OneTimeAddress {
   public constructor(
     public readonly hashAlgorithm: HashAlgorithm,

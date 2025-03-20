@@ -1,25 +1,36 @@
-import { IInclusionProofDto, InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
-import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
-import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
+import {HexConverter} from '@unicitylabs/commons/lib/util/HexConverter.js';
+import {dedent} from '@unicitylabs/commons/lib/util/StringUtils.js';
 
-import { TokenId } from './TokenId.js';
-import { ITokenStateDto, TokenState } from './TokenState.js';
-import { TokenType } from './TokenType.js';
-import { IAddress } from '../address/IAddress.js';
-import { IPredicate, IPredicateDto } from '../predicate/IPredicate.js';
-import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
-import { MintTransactionData } from '../transaction/MintTransactionData.js';
-import { TransactionData } from '../transaction/TransactionData.js';
+import {TokenId} from './TokenId.js';
+import {ITokenStateDto, TokenState} from './TokenState.js';
+import {TokenType} from './TokenType.js';
+import {IAddress} from '../address/IAddress.js';
+import {IPredicate, IPredicateDto} from '../predicate/IPredicate.js';
+import {ITransactionDto, Transaction} from '../transaction/Transaction.js';
+import {MintTransactionData} from '../transaction/MintTransactionData.js';
+import {TransactionData} from '../transaction/TransactionData.js';
+import { PredicateType } from '../predicate/PredicateType.js';
+import { OneTimeAddressPredicate } from '../predicate/OneTimeAddressPredicate.js';
 
 export interface IPredicateFactory {
-  create(data: IPredicateDto): Promise<IPredicate>;
+  create(tokenId: TokenId, tokenType: TokenType, recipient: IAddress, data: IPredicateDto): Promise<IPredicate>;
+}
+
+export class PredicateFactory {
+  public static async create(tokenId: TokenId, tokenType: TokenType, recipient: IAddress, data: IPredicateDto): Promise<IPredicate> {
+    switch (data.type) {
+      case PredicateType.ONE_TIME_ADDRESS:
+        return OneTimeAddressPredicate.fromDto(tokenId, tokenType, recipient, data);
+      default:
+        throw new Error(`Unknown predicate type: ${data.type}`);
+    }
+  }
 }
 
 export interface ITokenDto {
   readonly id: string;
   readonly type: string;
   readonly data: string;
-  readonly inclusionProof: IInclusionProofDto;
   readonly recipient: string;
   readonly salt: string;
   readonly state: ITokenStateDto;
@@ -31,7 +42,6 @@ export class Token {
     public readonly id: TokenId,
     public readonly type: TokenType,
     public readonly _data: Uint8Array,
-    public readonly inclusionProof: InclusionProof,
     public readonly recipient: IAddress,
     public readonly _salt: Uint8Array,
     public readonly state: TokenState,
@@ -54,7 +64,6 @@ export class Token {
     return {
       data: HexConverter.encode(this._data),
       id: this.id.toDto(),
-      inclusionProof: this.inclusionProof.toDto(),
       recipient: this.recipient.toDto(),
       salt: HexConverter.encode(this._salt),
       state: this.state.toDto(),
@@ -69,8 +78,6 @@ export class Token {
           Id: ${this.id.toString()}
           Type: ${this.type.toString()}
           Data: ${HexConverter.encode(this._data)}
-          InclusionProof: 
-            ${this.inclusionProof.toString()}
           Recipient: ${this.recipient.toString()}
           Salt: ${HexConverter.encode(this._salt)}
           State: 

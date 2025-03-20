@@ -29,8 +29,6 @@ interface ISourceState {
   readonly hashAlgorithm: HashAlgorithm;
 }
 
-//
-
 export class StateTransitionClient {
   private readonly client: AggregatorClient;
 
@@ -41,14 +39,14 @@ export class StateTransitionClient {
   private static async createAuthenticator(
     signingService: ISigningService,
     transactionData: TransactionData | MintTransactionData,
-    sourceState: ISourceState,
+    sourceState: ISourceState
   ): Promise<Authenticator> {
     return new Authenticator(
       sourceState.hashAlgorithm,
       signingService.publicKey,
       signingService.algorithm,
       await signingService.sign(transactionData.hash),
-      sourceState.hash,
+      sourceState.hash
     );
   }
 
@@ -58,26 +56,27 @@ export class StateTransitionClient {
     tokenData: Uint8Array,
     data: Uint8Array,
     secret: Uint8Array,
+    // TODO: Do I need to supply nonce? I could generate it in place
     nonce: Uint8Array,
+    // TODO: Do I need to supply salt? I could generate it in place
     salt: Uint8Array,
+    addressHashAlgorithm: HashAlgorithm
   ): Promise<Token> {
-    // TODO: HashAlgorithm should be variable
-    const recipient = await OneTimeAddress.create(tokenType, secret, nonce, HashAlgorithm.SHA256);
+    const recipient = await OneTimeAddress.create(tokenType, secret, nonce, addressHashAlgorithm);
 
     const sourceState = await RequestId.create(tokenId.encode(), MINT_SUFFIX);
     const signingService = new SigningService(
-      await new DataHasher(HashAlgorithm.SHA256).update(MINTER_SECRET).update(tokenId.encode()).digest(),
+      await new DataHasher(HashAlgorithm.SHA256).update(MINTER_SECRET).update(tokenId.encode()).digest()
     );
 
     const requestId = await RequestId.create(signingService.publicKey, sourceState.hash);
 
     const transactionData = await MintTransactionData.create(tokenId, tokenType, tokenData, recipient, salt, data);
 
-    // TODO: Depending on address, we get authenticator type and predicate type
     await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await StateTransitionClient.createAuthenticator(signingService, transactionData, sourceState),
+      await StateTransitionClient.createAuthenticator(signingService, transactionData, sourceState)
     );
     // TODO: Inclusion proof with submit transaction
     const inclusionProof = await this.client.getInclusionProof(requestId);
@@ -87,23 +86,24 @@ export class StateTransitionClient {
       throw new Error('Inclusion proof verification failed.');
     }
 
-    if (!HashAlgorithm[inclusionProof.authenticator.hashAlgorithm]) {
+    const hashAlgorithm = HashAlgorithm[inclusionProof.authenticator.hashAlgorithm as keyof typeof HashAlgorithm];
+    if (!hashAlgorithm) {
       throw new Error('Invalid inclusion proof hash algorithm.');
     }
 
     const expectedRecipient = await OneTimeAddress.createFromPublicKey(
       tokenType,
       inclusionProof.authenticator.algorithm,
-      inclusionProof.authenticator.hashAlgorithm,
+      addressHashAlgorithm,
       inclusionProof.authenticator.publicKey,
-      nonce,
+      nonce
     );
 
     if (!expectedRecipient.equals(recipient)) {
       throw new Error('Recipient mismatch');
     }
 
-    if (HexConverter.encode(inclusionProof.payload) !== HexConverter.encode(transactionData.hash)) {
+    if (HexConverter.encode(inclusionProof.transactionHash) !== HexConverter.encode(transactionData.hash)) {
       throw new Error('Payload hash mismatch');
     }
 
@@ -113,13 +113,13 @@ export class StateTransitionClient {
         tokenType,
         recipient,
         await SigningService.createFromSecret(secret, nonce),
-        HashAlgorithm.SHA256,
-        nonce,
+        addressHashAlgorithm,
+        nonce
       ),
-      data,
+      data
     );
 
-    return new Token(tokenId, tokenType, tokenData, inclusionProof, recipient, salt, state, [new Transaction(transactionData, inclusionProof)], '');
+    return new Token(tokenId, tokenType, tokenData, recipient, salt, state, [new Transaction(transactionData, inclusionProof)], '');
   }
 
   public async createTransaction(
@@ -128,105 +128,104 @@ export class StateTransitionClient {
     secret: Uint8Array,
     salt: Uint8Array,
     data: Uint8Array,
-    message: string,
+    message: string
   ): Promise<Transaction<TransactionData>> {
     const transactionData = await TransactionData.create(token.state, recipient, salt, data, message);
-    const signingService = await token.state.generateSigningService(secret);
+    const signingService = new SigningService(
+      await new DataHasher(HashAlgorithm.SHA256)
+        .update(secret)
+        .update(token.state.unlockPredicate.nonce)
+        .digest()
+    );
 
     const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
     await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await StateTransitionClient.createAuthenticator(signingService, transactionData, token.state),
+      await StateTransitionClient.createAuthenticator(signingService, transactionData, token.state)
     );
 
     const inclusionProof = await this.client.getInclusionProof(requestId);
     const transaction = new Transaction(transactionData, inclusionProof);
 
-    if (!(await token.state.verify(transaction))) {
+    if (!(await token.state.unlockPredicate.verify(transaction))) {
       throw new Error('Transaction verification failed against unlock predicate');
     }
 
     return transaction;
   }
 
-  // TokenState inside transaction will verify previous transaction
+  public async importToken(tokenDto: ITokenDto, predicateFactory: IPredicateFactory): Promise<Token> {
+    const tokenId = TokenId.create(HexConverter.decode(tokenDto.id));
+    const tokenType = TokenType.create(HexConverter.decode(tokenDto.type));
+    const tokenData = HexConverter.decode(tokenDto.data);
 
-  public async importToken(data: ITokenDto, predicateFactory: IPredicateFactory): Promise<Token> {
-    const tokenId = TokenId.create(HexConverter.decode(data.id));
-    const tokenType = TokenType.create(HexConverter.decode(data.type));
-    const tokenData = HexConverter.decode(data.data);
-
-    const transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] = [
-      new Transaction(
-        await MintTransactionData.create(
-          tokenId,
-          tokenType,
-          tokenData,
-          data.transactions[0].data.recipient as unknown as IAddress,
-          HexConverter.decode(data.transactions[0].data.salt),
-          data.transactions[0].data.data ? HexConverter.decode(data.transactions[0].data.data) : null,
-        ),
-        InclusionProof.fromDto(data.transactions[0].inclusionProof)
+    const mintTransaction = new Transaction(
+      await MintTransactionData.create(
+        tokenId,
+        tokenType,
+        tokenData,
+        // TODO: Convert this to address
+        tokenDto.transactions[0].data.recipient as unknown as IAddress,
+        HexConverter.decode(tokenDto.transactions[0].data.salt),
+        tokenDto.transactions[0].data.data ? HexConverter.decode(tokenDto.transactions[0].data.data) : null
       ),
-    ];
+      InclusionProof.fromDto(tokenDto.transactions[0].inclusionProof)
+    );
 
-    for (let i = 1; i < data.transactions.length; i++) {
-      const { data: transactionData, inclusionProof } = data.transactions[i] as ITransactionDto<TransactionData>;
+    const transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] = [mintTransaction];
+
+    // Verify if token is correctly minted
+    const sourceState = await RequestId.create(tokenId.encode(), MINT_SUFFIX);
+    const signingService = new SigningService(
+      await new DataHasher(HashAlgorithm.SHA256).update(MINTER_SECRET).update(tokenId.encode()).digest()
+    );
+
+    const requestId = await RequestId.create(signingService.publicKey, sourceState.hash);
+
+    if (!(await mintTransaction.inclusionProof.verify(requestId.toBigInt()))) {
+      throw new Error('Mint inclusion proof verification failed.');
+    }
+
+    let previousTransaction: Transaction<MintTransactionData | TransactionData> = mintTransaction;
+    for (let i = 1; i < tokenDto.transactions.length; i++) {
+      const { data, inclusionProof } = tokenDto.transactions[i] as ITransactionDto<TransactionData>;
+      const recipient = data.recipient as unknown as IAddress;
       const transaction = new Transaction(
         await TransactionData.create(
           await TokenState.create(
-            await predicateFactory.create(transactionData.sourceState.unlockPredicate),
-            HexConverter.decode(transactionData.sourceState.data),
+            await predicateFactory.create(tokenId, tokenType, previousTransaction.data.recipient, data.sourceState.unlockPredicate),
+            previousTransaction.data.data! // TODO: This should be a Uint8Array or null
           ),
-          transactionData.recipient as unknown as IAddress,
-          HexConverter.decode(transactionData.salt),
-          transactionData.data ? HexConverter.decode(transactionData.data) : null,
-          transactionData.message ?? null,
+          recipient,
+          HexConverter.decode(data.salt),
+          data.data ? HexConverter.decode(data.data) : null,
+          data.message ?? null
         ),
-        InclusionProof.fromDto(inclusionProof),
+        InclusionProof.fromDto(inclusionProof)
       );
 
-      const previousTransaction = transactions.at(-1) as Transaction<MintTransactionData | TransactionData>;
-      const signatureVerification = ;
-  
-      if (!signatureVerification) {
-        throw new Error('Signature verification failed');
-      }
 
-      
-
-      if (!transaction.data.sourceState.verify(transaction)) {
+      if (!await transaction.data.sourceState.unlockPredicate.verify(transaction)) {
         throw new Error('Predicate verification failed');
       }
 
       transactions.push(transaction);
+      previousTransaction = transaction;
     }
-
-    const previousTransaction = transactions.at(-1) as Transaction<TransactionData | MintTransactionData>;
-    const inclusionProof = InclusionProof.fromDto(data.inclusionProof);
-
-    const signatureVerification = ;
-
-    if (!signatureVerification) {
-      throw new Error('Signature verification failed');
-    }
-
-    // TODO: Prove that ive reached the latest state
 
     return new Token(
       tokenId,
       tokenType,
       tokenData,
-      inclusionProof,
-      data.recipient as unknown as IAddress,
-      HexConverter.decode(data.salt),
+      tokenDto.recipient as unknown as IAddress,
+      HexConverter.decode(tokenDto.salt),
       await TokenState.create(
-        await predicateFactory.create(data.state.unlockPredicate),
-        HexConverter.decode(data.state.data),
+        await predicateFactory.create(tokenId, tokenType, previousTransaction.data.recipient, tokenDto.state.unlockPredicate),
+        previousTransaction.data.data! // TODO: Should be null or uint8array
       ),
       transactions,
-      '',
+      ''
     );
   }
 }
