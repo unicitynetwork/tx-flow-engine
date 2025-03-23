@@ -1,3 +1,4 @@
+import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { Transaction } from '../transaction/Transaction.js';
 import { TransactionData } from '../transaction/TransactionData.js';
@@ -7,7 +8,7 @@ export interface IPredicateDto {
 }
 
 export interface IPredicate {
-  readonly hash: Uint8Array;
+  readonly hash: DataHash;
   readonly nonce: Uint8Array;
 
   verify(transaction: Transaction<MintTransactionData | TransactionData>): Promise<boolean>;

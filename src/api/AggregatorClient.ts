@@ -1,12 +1,13 @@
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { JsonRpcHttpTransport } from '@unicitylabs/commons/lib/json-rpc/JsonRpcHttpTransport.js';
-import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
 import { IAuthenticator } from '../IAuthenticatorFactory.js';
+import { IAggregatorClient } from './IAggregatorClient.js';
+import { DataHash } from '../../../shared/src/hash/DataHash.js';
 
-export class AggregatorClient {
+export class AggregatorClient implements IAggregatorClient {
   private readonly transport: JsonRpcHttpTransport;
   public constructor(url: string) {
     this.transport = new JsonRpcHttpTransport(url);
@@ -14,12 +15,12 @@ export class AggregatorClient {
 
   public async submitTransaction(
     requestId: RequestId,
-    payload: Uint8Array,
+    transactionHash: DataHash,
     authenticator: IAuthenticator,
   ): Promise<SubmitStateTransitionResponse> {
     const data = {
       authenticator: authenticator.toDto(),
-      payload: HexConverter.encode(payload),
+      payload: transactionHash.toDto(),
       requestId: requestId.toString(),
     };
 

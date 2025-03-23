@@ -8,6 +8,7 @@ import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
+import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { IAddress } from '../address/IAddress.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
@@ -33,19 +34,14 @@ export class OneTimeAddressPredicate implements IPredicate {
     private readonly algorithm: string,
     private readonly hashAlgorithm: HashAlgorithm,
     private readonly _nonce: Uint8Array,
-    private readonly _hash: Uint8Array,
+    public readonly hash: DataHash,
   ) {
     this.publicKey = new Uint8Array(publicKey);
     this._nonce = new Uint8Array(_nonce);
-    this._hash = new Uint8Array(_hash);
   }
 
   public get nonce(): Uint8Array {
     return this._nonce;
-  }
-
-  public get hash(): Uint8Array {
-    return new Uint8Array(this._hash);
   }
 
   public static async createFromPublicKey(
@@ -57,13 +53,18 @@ export class OneTimeAddressPredicate implements IPredicate {
     hashAlgorithm: HashAlgorithm,
     nonce: Uint8Array,
   ): Promise<OneTimeAddressPredicate> {
+    const algorithmHash = await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest();
+    const hashAlgorithmHash = await new DataHasher(HashAlgorithm.SHA256)
+      .update(new Uint8Array([hashAlgorithm & 0xff00, hashAlgorithm & 0xff]))
+      .digest();
+
     const hash = await new DataHasher(hashAlgorithm)
       .update(textEncoder.encode(OneTimeAddressPredicate.TYPE))
       .update(tokenId.encode())
       .update(tokenType.encode())
       .update(recipient.encode())
-      .update(await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest())
-      .update(await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(hashAlgorithm)).digest())
+      .update(algorithmHash.imprint)
+      .update(hashAlgorithmHash.imprint)
       .update(publicKey)
       .update(nonce)
       .digest();
@@ -98,7 +99,7 @@ export class OneTimeAddressPredicate implements IPredicate {
       'algorithm' in data &&
       typeof data.algorithm === 'string' &&
       'hashAlgorithm' in data &&
-      HashAlgorithm[data.hashAlgorithm as keyof typeof HashAlgorithm] &&
+      !!HashAlgorithm[data.hashAlgorithm as keyof typeof HashAlgorithm] &&
       'nonce' in data &&
       typeof data.nonce === 'string'
     );
@@ -139,8 +140,7 @@ export class OneTimeAddressPredicate implements IPredicate {
     // Verify if input state and public key are correct.
     if (
       HexConverter.encode(transaction.inclusionProof.authenticator.publicKey) !== HexConverter.encode(this.publicKey) ||
-      HexConverter.encode(transaction.inclusionProof.authenticator.stateHash) !==
-        HexConverter.encode(transaction.data.sourceState.hash)
+      transaction.inclusionProof.authenticator.stateHash.equals(transaction.data.sourceState.hash)
     ) {
       return false; // input mismatch
     }
@@ -160,7 +160,10 @@ export class OneTimeAddressPredicate implements IPredicate {
     return dedent`
           PublicKeyPredicate
             PublicKey: ${HexConverter.encode(this.publicKey)}
-            Hash: ${HexConverter.encode(this._hash)}
+            Algorithm: ${this.algorithm}
+            Hash Algorithm: ${HashAlgorithm[this.hashAlgorithm]}
+            Nonce: ${HexConverter.encode(this.nonce)}
+            Hash: ${this.hash.toString()}
         `;
   }
 }

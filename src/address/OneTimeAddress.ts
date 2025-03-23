@@ -4,20 +4,20 @@ import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { AddressScheme } from './IAddress.js';
+import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { TokenType } from '../token/TokenType.js';
 
 const textEncoder = new TextEncoder();
 
 export class OneTimeAddress {
-  public constructor(
-    public readonly hashAlgorithm: HashAlgorithm,
-    private readonly _data: Uint8Array,
-  ) {
-    this._data = new Uint8Array(_data);
-  }
+  public constructor(private readonly _data: DataHash) {}
 
   public get data(): Uint8Array {
-    return new Uint8Array(this._data);
+    return new Uint8Array(this._data.data);
+  }
+
+  public get hashAlgorithm(): HashAlgorithm {
+    return this._data.algorithm;
   }
 
   public get scheme(): AddressScheme {
@@ -48,15 +48,20 @@ export class OneTimeAddress {
     publicKey: Uint8Array,
     nonce: Uint8Array,
   ): Promise<OneTimeAddress> {
-    const hash = await new DataHasher(hashAlgorithm)
-      .update(tokenType.encode())
-      .update(await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest())
-      .update(await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(hashAlgorithm)).digest())
-      .update(publicKey)
-      .update(nonce)
+    const algorithmHash = await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest();
+    const hashAlgorithmHash = await new DataHasher(HashAlgorithm.SHA256)
+      .update(new Uint8Array([hashAlgorithm & 0xff00, hashAlgorithm & 0xff]))
       .digest();
 
-    return new OneTimeAddress(hashAlgorithm, hash);
+    return new OneTimeAddress(
+      await new DataHasher(hashAlgorithm)
+        .update(tokenType.encode())
+        .update(algorithmHash.data)
+        .update(hashAlgorithmHash.data)
+        .update(publicKey)
+        .update(nonce)
+        .digest(),
+    );
   }
 
   public encode(): Uint8Array {
@@ -64,14 +69,14 @@ export class OneTimeAddress {
   }
 
   public toDto(): string {
-    return `${this.scheme}://${HexConverter.encode(this._data)}`;
+    return `${this.scheme}://${this._data.toDto()}`;
   }
 
   public equals(recipient: OneTimeAddress): boolean {
-    return HexConverter.encode(this._data) === HexConverter.encode(recipient.data);
+    return this._data.equals(recipient._data);
   }
 
   public toString(): string {
-    return `OneTimeAddress[${HexConverter.encode(this._data)}]`;
+    return `OneTimeAddress[${HexConverter.encode(this._data.imprint)}]`;
   }
 }

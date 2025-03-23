@@ -4,6 +4,7 @@ import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
+import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { IAddress } from '../address/IAddress.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
@@ -11,26 +12,20 @@ import { TokenType } from '../token/TokenType.js';
 export interface IMintTransactionDataDto {
   readonly recipient: string;
   readonly salt: string;
-  readonly data: string | null;
+  readonly dataHash: string | null;
 }
 
 export class MintTransactionData {
   private constructor(
-    private readonly _hash: Uint8Array,
+    public readonly hash: DataHash,
     public readonly sourceState: RequestId,
     public readonly recipient: IAddress,
     public readonly salt: Uint8Array,
-    public readonly data: Uint8Array | null,
-  ) {
-    this._hash = new Uint8Array(_hash);
-  }
+    public readonly dataHash: DataHash | null,
+  ) {}
 
-  public get hash(): Uint8Array {
-    return new Uint8Array(this._hash);
-  }
-
-  public get hashAlgorithm(): string {
-    return HashAlgorithm.SHA256;
+  public get hashAlgorithm(): HashAlgorithm {
+    return this.hash.algorithm;
   }
 
   public static async create(
@@ -40,27 +35,28 @@ export class MintTransactionData {
     sourceState: RequestId,
     recipient: IAddress,
     salt: Uint8Array,
-    data: Uint8Array | null,
+    dataHash: DataHash | null,
   ): Promise<MintTransactionData> {
+    const tokenDataHash = await new DataHasher(HashAlgorithm.SHA256).update(tokenData).digest();
     return new MintTransactionData(
       await new DataHasher(HashAlgorithm.SHA256)
         .update(tokenId.encode())
         .update(tokenType.encode())
-        .update(await new DataHasher(HashAlgorithm.SHA256).update(tokenData).digest())
-        .update(await new DataHasher(HashAlgorithm.SHA256).update(data ?? new Uint8Array()).digest())
+        .update(tokenDataHash.imprint)
+        .update(dataHash?.imprint ?? new Uint8Array())
         .update(recipient.encode())
         .update(salt)
         .digest(),
       sourceState,
       recipient,
       salt,
-      data,
+      dataHash,
     );
   }
 
   public toDto(): IMintTransactionDataDto {
     return {
-      data: this.data ? HexConverter.encode(this.data) : null,
+      dataHash: this.dataHash?.toDto() ?? null,
       recipient: this.recipient.toDto(),
       salt: HexConverter.encode(this.salt),
     };
@@ -71,8 +67,8 @@ export class MintTransactionData {
       MintTransaction
         Recipient: ${this.recipient.toString()}
         Salt: ${HexConverter.encode(this.salt)}
-        Data: ${this.data ? HexConverter.encode(this.data) : null}
-        Hash: ${HexConverter.encode(this._hash)}
+        Data: ${this.dataHash?.toString() ?? null}
+        Hash: ${this.hash.toString()}
     `;
   }
 }

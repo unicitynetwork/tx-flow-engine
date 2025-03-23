@@ -1,33 +1,19 @@
 import { ISubmitStateTransitionResponseDto } from '@unicitylabs/commons/lib/api/ISubmitStateTransitionResponseDto.js';
-import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
-import { SubmitStateTransitionStatus } from '@unicitylabs/commons/lib/api/SubmitStateTransitionStatus.js';
-import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
+
+import { InclusionProof } from '../../../shared/src/api/InclusionProof.js';
 
 export class SubmitStateTransitionResponse {
-  public constructor(
-    public readonly status: SubmitStateTransitionStatus,
-    public readonly requestId: RequestId,
-  ) {}
+  public constructor(public readonly inclusionProof: InclusionProof) {}
 
   public static fromDto(data: unknown): SubmitStateTransitionResponse {
     if (!SubmitStateTransitionResponse.isDto(data)) {
       throw new Error('Parsing submit state transition response failed.');
     }
 
-    return new SubmitStateTransitionResponse(
-      data.status,
-      RequestId.createFromBytes(HexConverter.decode(data.requestId)),
-    );
+    return new SubmitStateTransitionResponse(InclusionProof.fromDto(data.inclusionProof));
   }
 
   public static isDto(data: unknown): data is ISubmitStateTransitionResponseDto {
-    return (
-      data instanceof Object &&
-      'status' in data &&
-      'requestId' in data &&
-      typeof data.status === 'string' &&
-      SubmitStateTransitionStatus[data.status as SubmitStateTransitionStatus] &&
-      typeof data.requestId === 'string'
-    );
+    return data instanceof Object && 'inclusionProof' in data;
   }
 }
