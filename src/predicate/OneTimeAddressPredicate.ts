@@ -11,6 +11,7 @@ import { PredicateType } from './PredicateType.js';
 import { IAddress } from '../address/IAddress.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
+import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { Transaction } from '../transaction/Transaction.js';
 import { TransactionData } from '../transaction/TransactionData.js';
 
@@ -32,7 +33,7 @@ export class OneTimeAddressPredicate implements IPredicate {
     private readonly algorithm: string,
     private readonly hashAlgorithm: HashAlgorithm,
     private readonly _nonce: Uint8Array,
-    private readonly _hash: Uint8Array
+    private readonly _hash: Uint8Array,
   ) {
     this.publicKey = new Uint8Array(publicKey);
     this._nonce = new Uint8Array(_nonce);
@@ -47,13 +48,15 @@ export class OneTimeAddressPredicate implements IPredicate {
     return new Uint8Array(this._hash);
   }
 
-  public static async createFromPublicKey(tokenId: TokenId,
-                                          tokenType: TokenType,
-                                          recipient: IAddress,
-                                          algorithm: string,
-                                          publicKey: Uint8Array,
-                                          hashAlgorithm: HashAlgorithm,
-                                          nonce: Uint8Array): Promise<OneTimeAddressPredicate> {
+  public static async createFromPublicKey(
+    tokenId: TokenId,
+    tokenType: TokenType,
+    recipient: IAddress,
+    algorithm: string,
+    publicKey: Uint8Array,
+    hashAlgorithm: HashAlgorithm,
+    nonce: Uint8Array,
+  ): Promise<OneTimeAddressPredicate> {
     const hash = await new DataHasher(hashAlgorithm)
       .update(textEncoder.encode(OneTimeAddressPredicate.TYPE))
       .update(tokenId.encode())
@@ -68,54 +71,23 @@ export class OneTimeAddressPredicate implements IPredicate {
     return new OneTimeAddressPredicate(publicKey, algorithm, hashAlgorithm, nonce, hash);
   }
 
-  public static async create(
+  public static create(
     tokenId: TokenId,
     tokenType: TokenType,
     recipient: IAddress,
     signingService: ISigningService,
     hashAlgorithm: HashAlgorithm,
-    nonce: Uint8Array
+    nonce: Uint8Array,
   ): Promise<OneTimeAddressPredicate> {
-    return OneTimeAddressPredicate.createFromPublicKey(tokenId, tokenType, recipient, signingService.algorithm, signingService.publicKey, hashAlgorithm, nonce);
-  }
-
-  public toDto(): IPredicateDto {
-    return {
-      algorithm: this.algorithm,
-      hashAlgorithm: this.hashAlgorithm,
-      nonce: HexConverter.encode(this.nonce),
-      publicKey: HexConverter.encode(this.publicKey),
-      type: OneTimeAddressPredicate.TYPE
-    };
-  }
-
-  public async verify(transaction: Transaction<TransactionData>): Promise<boolean> {
-    // Verify if input state and public key are correct.
-    if (
-      HexConverter.encode(transaction.inclusionProof.authenticator.publicKey) !== HexConverter.encode(this.publicKey) ||
-      HexConverter.encode(transaction.inclusionProof.authenticator.stateHash) !==
-      HexConverter.encode(transaction.data.sourceState.hash)
-    ) {
-      return false; // input mismatch
-    }
-
-    // Verify if transaction data is valid.
-    if (!(transaction.inclusionProof.authenticator.verify(transaction.data.hash))) {
-      return false;
-    }
-
-    // Verify inclusion proof path.
-    const requestId = await RequestId.create(this.publicKey, transaction.data.sourceState.hash);
-    const status = await transaction.inclusionProof.verify(requestId.toBigInt());
-    return status === InclusionProofVerificationStatus.OK;
-  }
-
-  public toString(): string {
-    return dedent`
-          PublicKeyPredicate
-            PublicKey: ${HexConverter.encode(this.publicKey)}
-            Hash: ${HexConverter.encode(this._hash)}
-        `;
+    return OneTimeAddressPredicate.createFromPublicKey(
+      tokenId,
+      tokenType,
+      recipient,
+      signingService.algorithm,
+      signingService.publicKey,
+      hashAlgorithm,
+      nonce,
+    );
   }
 
   public static isDto(data: unknown): data is IPredicateDto {
@@ -132,15 +104,63 @@ export class OneTimeAddressPredicate implements IPredicate {
     );
   }
 
-  public static async fromDto(tokenId: TokenId, tokenType: TokenType, recipient: IAddress, data: unknown): Promise<OneTimeAddressPredicate> {
+  public static fromDto(
+    tokenId: TokenId,
+    tokenType: TokenType,
+    recipient: IAddress,
+    data: unknown,
+  ): Promise<OneTimeAddressPredicate> {
     if (!OneTimeAddressPredicate.isDto(data)) {
       throw new Error('Invalid one time address predicate dto');
     }
 
-    return OneTimeAddressPredicate.createFromPublicKey(tokenId, tokenType, recipient, data.algorithm, HexConverter.decode(data.publicKey), data.hashAlgorithm, HexConverter.decode(data.nonce));
+    return OneTimeAddressPredicate.createFromPublicKey(
+      tokenId,
+      tokenType,
+      recipient,
+      data.algorithm,
+      HexConverter.decode(data.publicKey),
+      data.hashAlgorithm,
+      HexConverter.decode(data.nonce),
+    );
+  }
+
+  public toDto(): IPredicateDto {
+    return {
+      algorithm: this.algorithm,
+      hashAlgorithm: this.hashAlgorithm,
+      nonce: HexConverter.encode(this.nonce),
+      publicKey: HexConverter.encode(this.publicKey),
+      type: OneTimeAddressPredicate.TYPE,
+    };
+  }
+
+  public async verify(transaction: Transaction<TransactionData | MintTransactionData>): Promise<boolean> {
+    // Verify if input state and public key are correct.
+    if (
+      HexConverter.encode(transaction.inclusionProof.authenticator.publicKey) !== HexConverter.encode(this.publicKey) ||
+      HexConverter.encode(transaction.inclusionProof.authenticator.stateHash) !==
+        HexConverter.encode(transaction.data.sourceState.hash)
+    ) {
+      return false; // input mismatch
+    }
+
+    // Verify if transaction data is valid.
+    if (!transaction.inclusionProof.authenticator.verify(transaction.data.hash)) {
+      return false;
+    }
+
+    // Verify inclusion proof path.
+    const requestId = await RequestId.create(this.publicKey, transaction.data.sourceState.hash);
+    const status = await transaction.inclusionProof.verify(requestId.toBigInt());
+    return status === InclusionProofVerificationStatus.OK;
+  }
+
+  public toString(): string {
+    return dedent`
+          PublicKeyPredicate
+            PublicKey: ${HexConverter.encode(this.publicKey)}
+            Hash: ${HexConverter.encode(this._hash)}
+        `;
   }
 }
-
-
-
-

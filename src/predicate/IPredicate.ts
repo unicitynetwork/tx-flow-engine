@@ -1,5 +1,5 @@
-import { Transaction } from '../transaction/Transaction.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
+import { Transaction } from '../transaction/Transaction.js';
 import { TransactionData } from '../transaction/TransactionData.js';
 
 export interface IPredicateDto {

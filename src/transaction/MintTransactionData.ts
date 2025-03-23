@@ -1,3 +1,4 @@
+import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
@@ -16,6 +17,7 @@ export interface IMintTransactionDataDto {
 export class MintTransactionData {
   private constructor(
     private readonly _hash: Uint8Array,
+    public readonly sourceState: RequestId,
     public readonly recipient: IAddress,
     public readonly salt: Uint8Array,
     public readonly data: Uint8Array | null,
@@ -35,6 +37,7 @@ export class MintTransactionData {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: Uint8Array,
+    sourceState: RequestId,
     recipient: IAddress,
     salt: Uint8Array,
     data: Uint8Array | null,
@@ -48,6 +51,7 @@ export class MintTransactionData {
         .update(recipient.encode())
         .update(salt)
         .digest(),
+      sourceState,
       recipient,
       salt,
       data,

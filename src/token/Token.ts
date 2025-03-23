@@ -1,31 +1,13 @@
-import {HexConverter} from '@unicitylabs/commons/lib/util/HexConverter.js';
-import {dedent} from '@unicitylabs/commons/lib/util/StringUtils.js';
+import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
+import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
-import {TokenId} from './TokenId.js';
-import {ITokenStateDto, TokenState} from './TokenState.js';
-import {TokenType} from './TokenType.js';
-import {IAddress} from '../address/IAddress.js';
-import {IPredicate, IPredicateDto} from '../predicate/IPredicate.js';
-import {ITransactionDto, Transaction} from '../transaction/Transaction.js';
-import {MintTransactionData} from '../transaction/MintTransactionData.js';
-import {TransactionData} from '../transaction/TransactionData.js';
-import { PredicateType } from '../predicate/PredicateType.js';
-import { OneTimeAddressPredicate } from '../predicate/OneTimeAddressPredicate.js';
-
-export interface IPredicateFactory {
-  create(tokenId: TokenId, tokenType: TokenType, recipient: IAddress, data: IPredicateDto): Promise<IPredicate>;
-}
-
-export class PredicateFactory {
-  public static async create(tokenId: TokenId, tokenType: TokenType, recipient: IAddress, data: IPredicateDto): Promise<IPredicate> {
-    switch (data.type) {
-      case PredicateType.ONE_TIME_ADDRESS:
-        return OneTimeAddressPredicate.fromDto(tokenId, tokenType, recipient, data);
-      default:
-        throw new Error(`Unknown predicate type: ${data.type}`);
-    }
-  }
-}
+import { TokenId } from './TokenId.js';
+import { ITokenStateDto, TokenState } from './TokenState.js';
+import { TokenType } from './TokenType.js';
+import { IAddress } from '../address/IAddress.js';
+import { MintTransactionData } from '../transaction/MintTransactionData.js';
+import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
+import { TransactionData } from '../transaction/TransactionData.js';
 
 export interface ITokenDto {
   readonly id: string;
@@ -67,7 +49,10 @@ export class Token {
       recipient: this.recipient.toDto(),
       salt: HexConverter.encode(this._salt),
       state: this.state.toDto(),
-      transactions: this.transactions.map((transaction) => transaction.toDto()) as [ITransactionDto<MintTransactionData>, ...ITransactionDto<TransactionData>[]],
+      transactions: this.transactions.map((transaction) => transaction.toDto()) as [
+        ITransactionDto<MintTransactionData>,
+        ...ITransactionDto<TransactionData>[],
+      ],
       type: this.type.toDto(),
     };
   }

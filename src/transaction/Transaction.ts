@@ -1,12 +1,14 @@
 import { IInclusionProofDto, InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
-import { ITransactionDataDto, TransactionData } from './TransactionData.js';
 import { IMintTransactionDataDto, MintTransactionData } from './MintTransactionData.js';
+import { ITransactionDataDto, TransactionData } from './TransactionData.js';
 
-type TransactionDataDtoType<T extends  TransactionData | MintTransactionData> = T extends TransactionData ? ITransactionDataDto : IMintTransactionDataDto;
+type TransactionDataDtoType<T extends TransactionData | MintTransactionData> = T extends TransactionData
+  ? ITransactionDataDto
+  : IMintTransactionDataDto;
 
-export interface ITransactionDto<T extends  TransactionData | MintTransactionData> {
+export interface ITransactionDto<T extends TransactionData | MintTransactionData> {
   readonly data: TransactionDataDtoType<T>;
   readonly inclusionProof: IInclusionProofDto;
 }

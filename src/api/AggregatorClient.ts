@@ -1,11 +1,10 @@
-import { Authenticator } from '@unicitylabs/commons/lib/api/Authenticator.js';
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
 import { JsonRpcHttpTransport } from '@unicitylabs/commons/lib/json-rpc/JsonRpcHttpTransport.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
-import { IAuthenticator } from '../IAuthenticator.js';
+import { IAuthenticator } from '../IAuthenticatorFactory.js';
 
 export class AggregatorClient {
   private readonly transport: JsonRpcHttpTransport;
