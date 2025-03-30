@@ -4,8 +4,7 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
-import { IAddress } from '../address/IAddress.js';
-import { ITokenStateDto, TokenState } from '../token/TokenState.js';
+import { IAux, ITokenStateDto, TokenState } from '../token/TokenState.js';
 
 export interface ITransactionDataDto {
   readonly sourceState: ITokenStateDto;
@@ -15,11 +14,13 @@ export interface ITransactionDataDto {
   readonly message: string | null;
 }
 
+const textEncoder = new TextEncoder();
+
 export class TransactionData {
   private constructor(
     public readonly hash: DataHash,
-    public readonly sourceState: TokenState,
-    public readonly recipient: IAddress,
+    public readonly sourceState: TokenState<IAux>,
+    public readonly recipient: string,
     public readonly salt: Uint8Array,
     public readonly dataHash: DataHash | null,
     private readonly _message: Uint8Array | null,
@@ -36,8 +37,8 @@ export class TransactionData {
   }
 
   public static async create(
-    state: TokenState,
-    recipient: IAddress,
+    state: TokenState<IAux>,
+    recipient: string,
     salt: Uint8Array,
     dataHash: DataHash | null,
     message: Uint8Array | null,
@@ -46,7 +47,7 @@ export class TransactionData {
       await new DataHasher(HashAlgorithm.SHA256)
         .update(state.hash.imprint)
         .update(dataHash?.imprint ?? new Uint8Array())
-        .update(recipient.encode())
+        .update(textEncoder.encode(recipient))
         .update(salt)
         .update(message ?? new Uint8Array())
         .digest(),
@@ -62,7 +63,7 @@ export class TransactionData {
     return {
       dataHash: this.dataHash?.toDto() ?? null,
       message: this._message ? HexConverter.encode(this._message) : null,
-      recipient: this.recipient.toDto(),
+      recipient: this.recipient,
       salt: HexConverter.encode(this.salt),
       sourceState: this.sourceState.toDto(),
     };

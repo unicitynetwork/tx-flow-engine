@@ -2,7 +2,7 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { TokenId } from './TokenId.js';
-import { ITokenStateDto, TokenState } from './TokenState.js';
+import { IAux, ITokenStateDto, TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
@@ -21,7 +21,7 @@ export class Token {
     public readonly id: TokenId,
     public readonly type: TokenType,
     public readonly _data: Uint8Array,
-    public readonly state: TokenState,
+    public readonly state: TokenState<IAux>,
     public readonly transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
     public readonly nametagVerifier: string,
   ) {

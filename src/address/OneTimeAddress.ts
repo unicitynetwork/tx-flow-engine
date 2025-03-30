@@ -3,9 +3,9 @@ import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
-import { AddressScheme } from './IAddress.js';
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { TokenType } from '../token/TokenType.js';
+import { AddressScheme } from './AddressScheme.js';
 
 const textEncoder = new TextEncoder();
 
@@ -64,16 +64,8 @@ export class OneTimeAddress {
     );
   }
 
-  public encode(): Uint8Array {
-    return textEncoder.encode(this.toDto());
-  }
-
   public toDto(): string {
     return `${this.scheme}://${this._data.toDto()}`;
-  }
-
-  public equals(recipient: OneTimeAddress): boolean {
-    return this._data.equals(recipient._data);
   }
 
   public toString(): string {

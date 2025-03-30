@@ -1,7 +1,6 @@
 import { IPredicate, IPredicateDto } from './IPredicate.js';
 import { OneTimeAddressPredicate } from './OneTimeAddressPredicate.js';
 import { PredicateType } from './PredicateType.js';
-import { IAddress } from '../address/IAddress.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 
@@ -9,7 +8,7 @@ export class PredicateFactory {
   public static create(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: IAddress,
+    recipient: string,
     data: IPredicateDto,
   ): Promise<IPredicate> {
     switch (data.type) {

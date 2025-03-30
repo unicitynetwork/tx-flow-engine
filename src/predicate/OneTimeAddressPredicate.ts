@@ -9,7 +9,6 @@ import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
-import { IAddress } from '../address/IAddress.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
@@ -47,7 +46,7 @@ export class OneTimeAddressPredicate implements IPredicate {
   public static async createFromPublicKey(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: IAddress,
+    recipient: string,
     algorithm: string,
     publicKey: Uint8Array,
     hashAlgorithm: HashAlgorithm,
@@ -62,7 +61,7 @@ export class OneTimeAddressPredicate implements IPredicate {
       .update(textEncoder.encode(OneTimeAddressPredicate.TYPE))
       .update(tokenId.encode())
       .update(tokenType.encode())
-      .update(recipient.encode())
+      .update(textEncoder.encode(recipient))
       .update(algorithmHash.imprint)
       .update(hashAlgorithmHash.imprint)
       .update(publicKey)
@@ -75,7 +74,7 @@ export class OneTimeAddressPredicate implements IPredicate {
   public static create(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: IAddress,
+    recipient: string,
     signingService: ISigningService,
     hashAlgorithm: HashAlgorithm,
     nonce: Uint8Array,
@@ -108,7 +107,7 @@ export class OneTimeAddressPredicate implements IPredicate {
   public static fromDto(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: IAddress,
+    recipient: string,
     data: unknown,
   ): Promise<OneTimeAddressPredicate> {
     if (!OneTimeAddressPredicate.isDto(data)) {

@@ -5,7 +5,6 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
-import { IAddress } from '../address/IAddress.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 
@@ -15,11 +14,13 @@ export interface IMintTransactionDataDto {
   readonly dataHash: string | null;
 }
 
+const textEncoder = new TextEncoder();
+
 export class MintTransactionData {
   private constructor(
     public readonly hash: DataHash,
     public readonly sourceState: RequestId,
-    public readonly recipient: IAddress,
+    public readonly recipient: string,
     public readonly salt: Uint8Array,
     public readonly dataHash: DataHash | null,
   ) {}
@@ -33,7 +34,7 @@ export class MintTransactionData {
     tokenType: TokenType,
     tokenData: Uint8Array,
     sourceState: RequestId,
-    recipient: IAddress,
+    recipient: string,
     salt: Uint8Array,
     dataHash: DataHash | null,
   ): Promise<MintTransactionData> {
@@ -44,7 +45,7 @@ export class MintTransactionData {
         .update(tokenType.encode())
         .update(tokenDataHash.imprint)
         .update(dataHash?.imprint ?? new Uint8Array())
-        .update(recipient.encode())
+        .update(textEncoder.encode(recipient))
         .update(salt)
         .digest(),
       sourceState,
@@ -57,7 +58,7 @@ export class MintTransactionData {
   public toDto(): IMintTransactionDataDto {
     return {
       dataHash: this.dataHash?.toDto() ?? null,
-      recipient: this.recipient.toDto(),
+      recipient: this.recipient,
       salt: HexConverter.encode(this.salt),
     };
   }
@@ -65,7 +66,7 @@ export class MintTransactionData {
   public toString(): string {
     return dedent`
       MintTransaction
-        Recipient: ${this.recipient.toString()}
+        Recipient: ${this.recipient}
         Salt: ${HexConverter.encode(this.salt)}
         Data: ${this.dataHash?.toString() ?? null}
         Hash: ${this.hash.toString()}
