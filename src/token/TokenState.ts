@@ -6,16 +6,6 @@ import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { IPredicate, IPredicateDto } from '../predicate/IPredicate.js';
 
-export interface IAux {
-  toDto(): unknown;
-}
-
-export class OneTimeAddressAux implements IAux {
-    toDto(): unknown {
-        return null;
-    }
-}
-
 export interface ITokenStateDto {
   readonly unlockPredicate: IPredicateDto;
   readonly data: string | null;

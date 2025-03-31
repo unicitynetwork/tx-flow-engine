@@ -25,7 +25,7 @@ export class TransactionData {
     public readonly salt: Uint8Array,
     public readonly dataHash: DataHash | null,
     private readonly _message: Uint8Array | null,
-    public readonly aux: unknown
+    public readonly aux: unknown,
   ) {
     this._message = _message ? new Uint8Array(_message) : null;
   }
@@ -44,7 +44,7 @@ export class TransactionData {
     salt: Uint8Array,
     dataHash: DataHash | null,
     message: Uint8Array | null,
-    aux: unknown
+    aux: unknown,
   ): Promise<TransactionData> {
     return new TransactionData(
       await new DataHasher(HashAlgorithm.SHA256)
@@ -59,18 +59,18 @@ export class TransactionData {
       salt,
       dataHash,
       message,
-      aux
+      aux,
     );
   }
 
   public toDto(): ITransactionDataDto {
     return {
+      aux: this.aux,
       dataHash: this.dataHash?.toDto() ?? null,
       message: this._message ? HexConverter.encode(this._message) : null,
       recipient: this.recipient,
       salt: HexConverter.encode(this.salt),
       sourceState: this.sourceState.toDto(),
-      aux: this.aux
     };
   }
 

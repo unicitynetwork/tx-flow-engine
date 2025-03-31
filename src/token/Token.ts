@@ -35,6 +35,7 @@ export class Token {
 
   public toDto(): ITokenDto {
     return {
+      aux: this.aux,
       data: HexConverter.encode(this._data),
       id: this.id.toDto(),
       state: this.state.toDto(),
@@ -43,7 +44,6 @@ export class Token {
         ...ITransactionDto<TransactionData>[],
       ],
       type: this.type.toDto(),
-      aux: this.aux
     };
   }
 
