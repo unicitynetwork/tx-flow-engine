@@ -13,13 +13,14 @@ import { IPredicateFactory } from './predicate/IPredicateFactory.js';
 import { OneTimeAddressPredicate } from './predicate/OneTimeAddressPredicate.js';
 import { ITokenDto, Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
-import { IAux, OneTimeAddressAux, TokenState } from './token/TokenState.js';
+import { TokenState } from './token/TokenState.js';
 import { TokenType } from './token/TokenType.js';
 import { MintTransactionData } from './transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from './transaction/Transaction.js';
 import { TransactionData } from './transaction/TransactionData.js';
 import { DataHash } from '../../shared/src/hash/DataHash.js';
-import { IAuxFactory } from './IAuxFactory.js';
+import { AddressScheme } from './address/AddressScheme.js';
+import { ISigningService } from '../../shared/src/signing/ISigningService.js';
 
 // TOKENID string SHA-256 hash
 const MINT_SUFFIX = HexConverter.decode('9e82002c144d7c5796c50f6db50a0c7bbd7f717ae3af6c6c71a3e9eba3022730');
@@ -29,12 +30,13 @@ const MINTER_SECRET = HexConverter.decode('495f414d5f554e4956455253414c5f4d494e5
 export class StateTransitionClient {
   public constructor(
     private readonly client: IAggregatorClient,
-    private readonly authenticatorFactory: IAuthenticatorFactory,
-  ) {}
+    private readonly authenticatorFactory: IAuthenticatorFactory
+  ) {
+  }
 
   private static async isStateDataInTransaction(
     transaction: Transaction<TransactionData | MintTransactionData>,
-    state: TokenState<IAux>,
+    state: TokenState
   ): Promise<boolean> {
     if (transaction.data.dataHash) {
       if (!state.data) {
@@ -56,7 +58,7 @@ export class StateTransitionClient {
     data: Uint8Array | null,
     secret: Uint8Array,
     nonce: Uint8Array,
-    salt: Uint8Array,
+    salt: Uint8Array
   ): Promise<Token> {
     const recipient = await OneTimeAddress.create(tokenType, secret, nonce, HashAlgorithm.SHA256);
 
@@ -72,13 +74,13 @@ export class StateTransitionClient {
       sourceState,
       recipient.toDto(),
       salt,
-      data ? await new DataHasher(HashAlgorithm.SHA256).update(data).digest() : null,
+      data ? await new DataHasher(HashAlgorithm.SHA256).update(data).digest() : null
     );
 
     const { inclusionProof } = await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await this.authenticatorFactory.create(signingService, transactionData, sourceState),
+      await this.authenticatorFactory.create(signingService, transactionData, sourceState)
     );
 
     const status = await inclusionProof.verify(requestId.toBigInt());
@@ -96,7 +98,7 @@ export class StateTransitionClient {
       inclusionProof.authenticator.algorithm,
       HashAlgorithm.SHA256,
       inclusionProof.authenticator.publicKey,
-      nonce,
+      nonce
     );
 
     if (expectedRecipient.toDto() !== recipient.toDto()) {
@@ -109,8 +111,7 @@ export class StateTransitionClient {
 
     const state = await TokenState.create(
       await OneTimeAddressPredicate.create(tokenId, tokenType, recipient.toDto(), signingService, HashAlgorithm.SHA256, nonce),
-      data,
-      new OneTimeAddressAux()
+      data
     );
 
     return new Token(tokenId, tokenType, tokenData, state, [new Transaction(transactionData, inclusionProof)], '');
@@ -119,20 +120,19 @@ export class StateTransitionClient {
   public async createTransaction(
     token: Token,
     recipient: IAddress,
-    secret: Uint8Array,
+    // TODO: Create methods for this signingService to be correctly built, based on what type of address is given
+    signingService: ISigningService,
     salt: Uint8Array,
     dataHash: DataHash | null,
-    message: Uint8Array | null,
+    message: Uint8Array | null
   ): Promise<Transaction<TransactionData>> {
-    // TODO: Get signing service from state?
-    const signingService = await SigningService.createFromSecret(secret, token.state.unlockPredicate.nonce);
-    const transactionData = await TransactionData.create(token.state, recipient.toDto(), salt, dataHash, message);
+    const transactionData = await TransactionData.create(token.state, recipient.toDto(), salt, dataHash, message, token.aux);
 
     const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
     await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await this.authenticatorFactory.create(signingService, transactionData, token.state),
+      await this.authenticatorFactory.create(signingService, transactionData, token.state)
     );
 
     const inclusionProof = await this.client.getInclusionProof(requestId);
@@ -145,10 +145,11 @@ export class StateTransitionClient {
     return transaction;
   }
 
-  public async finishTransaction<AUX extends IAux>(
+  public async finishTransaction(
     token: Token,
-    state: TokenState<AUX>,
+    state: TokenState,
     transaction: Transaction<TransactionData>,
+    signingService: ISigningService
   ): Promise<Token> {
     if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
       throw new Error('Unlock predicate verification failed');
@@ -156,17 +157,31 @@ export class StateTransitionClient {
 
     const transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] = [
       ...token.transactions,
-      transaction,
+      transaction
     ];
 
     if (!(await StateTransitionClient.isStateDataInTransaction(transaction, state))) {
       throw new Error('State data is not part of transaction.');
     }
 
-    return new Token(token.id, token.type, token.data, state, transactions, '');
+    // TODO: Figure out better way to handle aux
+    const [scheme] = transaction.data.recipient.split('://');
+    let aux: unknown = null;
+    switch (scheme) {
+      case AddressScheme.ONE_TIME_ADDRESS:
+        aux = {
+          saltSignature: await signingService.sign(transaction.data.salt),
+        };
+        break;
+      default:
+        throw new Error('Invalid address scheme');
+    }
+
+    return new Token(token.id, token.type, token.data, state, transactions, aux);
   }
 
-  public async importToken(tokenDto: ITokenDto, auxFactory: IAuxFactory, predicateFactory: IPredicateFactory): Promise<Token> {
+  // TODO: Handle aux data
+  public async importToken(tokenDto: ITokenDto, predicateFactory: IPredicateFactory): Promise<Token> {
     const tokenId = TokenId.create(HexConverter.decode(tokenDto.id));
     const tokenType = TokenType.create(HexConverter.decode(tokenDto.type));
     const tokenData = HexConverter.decode(tokenDto.data);
@@ -182,9 +197,9 @@ export class StateTransitionClient {
         sourceState,
         tokenDto.transactions[0].data.recipient,
         HexConverter.decode(tokenDto.transactions[0].data.salt),
-        tokenDto.transactions[0].data.dataHash ? DataHash.fromDto(tokenDto.transactions[0].data.dataHash) : null,
+        tokenDto.transactions[0].data.dataHash ? DataHash.fromDto(tokenDto.transactions[0].data.dataHash) : null
       ),
-      InclusionProof.fromDto(tokenDto.transactions[0].inclusionProof),
+      InclusionProof.fromDto(tokenDto.transactions[0].inclusionProof)
     );
 
     const mintRequestId = await RequestId.create(signingService.publicKey, sourceState.hash);
@@ -204,17 +219,17 @@ export class StateTransitionClient {
               tokenId,
               tokenType,
               previousTransaction.data.recipient,
-              data.sourceState.unlockPredicate,
+              data.sourceState.unlockPredicate
             ),
             data.sourceState.data ? HexConverter.decode(data.sourceState.data) : null,
-            auxFactory.create(data.recipient, data.sourceState.aux)
           ),
           data.recipient,
           HexConverter.decode(data.salt),
           data.dataHash ? DataHash.fromDto(data.dataHash) : null,
           data.message ? HexConverter.decode(data.message) : null,
+          data.aux
         ),
-        InclusionProof.fromDto(inclusionProof),
+        InclusionProof.fromDto(inclusionProof)
       );
 
       if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, transaction.data.sourceState))) {
@@ -234,16 +249,15 @@ export class StateTransitionClient {
         tokenId,
         tokenType,
         previousTransaction.data.recipient,
-        tokenDto.state.unlockPredicate,
+        tokenDto.state.unlockPredicate
       ),
       tokenDto.state.data ? HexConverter.decode(tokenDto.state.data) : null,
-      auxFactory.create(previousTransaction.data.recipient, tokenDto.state.aux)
     );
 
     if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, state))) {
       throw new Error('State data is not part of transaction.');
     }
 
-    return new Token(tokenId, tokenType, tokenData, state, transactions, '');
+    return new Token(tokenId, tokenType, tokenData, state, transactions, tokenDto.aux);
   }
 }

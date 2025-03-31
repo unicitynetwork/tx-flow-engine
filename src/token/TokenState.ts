@@ -19,15 +19,13 @@ export class OneTimeAddressAux implements IAux {
 export interface ITokenStateDto {
   readonly unlockPredicate: IPredicateDto;
   readonly data: string | null;
-  readonly aux: unknown;
 }
 
-export class TokenState<AUX extends IAux> {
+export class TokenState {
   private constructor(
     public readonly unlockPredicate: IPredicate,
     private readonly _data: Uint8Array | null,
     public readonly hash: DataHash,
-    public readonly aux: AUX
   ) {
     this._data = _data ? new Uint8Array(_data) : null;
   }
@@ -40,7 +38,7 @@ export class TokenState<AUX extends IAux> {
     return this.hash.algorithm;
   }
 
-  public static async create<AUX extends IAux>(unlockPredicate: IPredicate, data: Uint8Array | null, aux: AUX): Promise<TokenState<AUX>> {
+  public static async create(unlockPredicate: IPredicate, data: Uint8Array | null): Promise<TokenState> {
     return new TokenState(
       unlockPredicate,
       data,
@@ -48,7 +46,6 @@ export class TokenState<AUX extends IAux> {
         .update(unlockPredicate.hash.imprint)
         .update(data ?? new Uint8Array())
         .digest(),
-      aux
     );
   }
 
@@ -56,7 +53,6 @@ export class TokenState<AUX extends IAux> {
     return {
       data: this._data ? HexConverter.encode(this._data) : null,
       unlockPredicate: this.unlockPredicate.toDto(),
-      aux: this.aux.toDto()
     };
   }
 
@@ -66,7 +62,6 @@ export class TokenState<AUX extends IAux> {
           UnlockPredicate: ${this.unlockPredicate.toString()}
           Data: ${this._data ? HexConverter.encode(this._data) : null}
           Hash: ${this.hash.toString()}
-          Aux: ${this.aux.toString()}
       `;
   }
 }

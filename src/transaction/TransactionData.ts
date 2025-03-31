@@ -4,7 +4,7 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
-import { IAux, ITokenStateDto, TokenState } from '../token/TokenState.js';
+import { ITokenStateDto, TokenState } from '../token/TokenState.js';
 
 export interface ITransactionDataDto {
   readonly sourceState: ITokenStateDto;
@@ -12,6 +12,7 @@ export interface ITransactionDataDto {
   readonly salt: string;
   readonly dataHash: string | null;
   readonly message: string | null;
+  readonly aux: unknown;
 }
 
 const textEncoder = new TextEncoder();
@@ -19,11 +20,12 @@ const textEncoder = new TextEncoder();
 export class TransactionData {
   private constructor(
     public readonly hash: DataHash,
-    public readonly sourceState: TokenState<IAux>,
+    public readonly sourceState: TokenState,
     public readonly recipient: string,
     public readonly salt: Uint8Array,
     public readonly dataHash: DataHash | null,
     private readonly _message: Uint8Array | null,
+    public readonly aux: unknown
   ) {
     this._message = _message ? new Uint8Array(_message) : null;
   }
@@ -37,11 +39,12 @@ export class TransactionData {
   }
 
   public static async create(
-    state: TokenState<IAux>,
+    state: TokenState,
     recipient: string,
     salt: Uint8Array,
     dataHash: DataHash | null,
     message: Uint8Array | null,
+    aux: unknown
   ): Promise<TransactionData> {
     return new TransactionData(
       await new DataHasher(HashAlgorithm.SHA256)
@@ -56,6 +59,7 @@ export class TransactionData {
       salt,
       dataHash,
       message,
+      aux
     );
   }
 
@@ -66,6 +70,7 @@ export class TransactionData {
       recipient: this.recipient,
       salt: HexConverter.encode(this.salt),
       sourceState: this.sourceState.toDto(),
+      aux: this.aux
     };
   }
 
@@ -79,6 +84,7 @@ export class TransactionData {
         Data: ${this.dataHash?.toString() ?? null}
         Message: ${this._message ? HexConverter.encode(this._message) : null}
         Hash: ${this.hash.toString()}
+        Aux: ${this.aux}
     `;
   }
 }
