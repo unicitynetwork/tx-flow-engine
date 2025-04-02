@@ -273,4 +273,12 @@ export class StateTransitionClient {
 
     return new Token(tokenId, tokenType, tokenData, state, transactions, tokenDto.aux);
   }
+
+  // TODO: Fix signingservice creation
+  public async getTokenStatus(token: Token, signingService: ISigningService): Promise<InclusionProofVerificationStatus> {
+    const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
+    const inclusionProof = await this.client.getInclusionProof(requestId);
+    // TODO: Check ownership?
+    return inclusionProof.verify(requestId.toBigInt());
+  }
 }
