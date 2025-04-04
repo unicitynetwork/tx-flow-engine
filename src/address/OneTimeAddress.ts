@@ -6,10 +6,11 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { AddressScheme } from './AddressScheme.js';
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
 import { TokenType } from '../token/TokenType.js';
+import { IAddress } from './IAddress.js';
 
 const textEncoder = new TextEncoder();
 
-export class OneTimeAddress {
+export class OneTimeAddress implements IAddress {
   public constructor(private readonly _data: DataHash) {}
 
   public get data(): Uint8Array {
@@ -21,7 +22,7 @@ export class OneTimeAddress {
   }
 
   public get scheme(): AddressScheme {
-    return AddressScheme.ONE_TIME_ADDRESS;
+    return AddressScheme.ONE_TIME;
   }
 
   public static async create(

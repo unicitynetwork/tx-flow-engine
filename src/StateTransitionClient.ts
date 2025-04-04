@@ -181,7 +181,7 @@ export class StateTransitionClient {
     const [scheme] = transaction.data.recipient.split('://');
     let aux: unknown = null;
     switch (scheme) {
-      case AddressScheme.ONE_TIME_ADDRESS:
+      case AddressScheme.PUBLIC_KEY:
         aux = {
           saltSignature: await signingService.sign(transaction.data.salt),
         };
