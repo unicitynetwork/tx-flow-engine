@@ -4,12 +4,9 @@ import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
-
-import { AddressScheme } from './address/AddressScheme.js';
 import { IAddress } from './address/IAddress.js';
 import { OneTimeAddress } from './address/OneTimeAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
-import { IAuthenticatorFactory } from './IAuthenticatorFactory.js';
 import { IPredicateFactory } from './predicate/IPredicateFactory.js';
 import { OneTimeAddressPredicate } from './predicate/OneTimeAddressPredicate.js';
 import { ITokenDto, Token } from './token/Token.js';
@@ -21,6 +18,8 @@ import { ITransactionDto, Transaction } from './transaction/Transaction.js';
 import { TransactionData } from './transaction/TransactionData.js';
 import { DataHash } from '../../shared/src/hash/DataHash.js';
 import { ISigningService } from '../../shared/src/signing/ISigningService.js';
+import { ISignature } from '../../shared/src/signing/ISignature.js';
+import { Authenticator } from '../../shared/src/api/Authenticator.js';
 
 // TOKENID string SHA-256 hash
 const MINT_SUFFIX = HexConverter.decode('9e82002c144d7c5796c50f6db50a0c7bbd7f717ae3af6c6c71a3e9eba3022730');
@@ -29,8 +28,7 @@ const MINTER_SECRET = HexConverter.decode('495f414d5f554e4956455253414c5f4d494e5
 
 export class StateTransitionClient {
   public constructor(
-    private readonly client: IAggregatorClient,
-    private readonly authenticatorFactory: IAuthenticatorFactory,
+    private readonly client: IAggregatorClient
   ) {}
 
   private static async isStateDataInTransaction(
@@ -79,7 +77,7 @@ export class StateTransitionClient {
     const { inclusionProof } = await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await this.authenticatorFactory.create(signingService, transactionData, sourceState),
+      await Authenticator.create(signingService, transactionData.hash, sourceState.hash),
     );
 
     const status = await inclusionProof.verify(requestId.toBigInt());
@@ -127,7 +125,7 @@ export class StateTransitionClient {
     token: Token,
     recipient: IAddress,
     // TODO: Create methods for this signingService to be correctly built, based on what type of address is given
-    signingService: ISigningService,
+    signingService: SigningService,
     salt: Uint8Array,
     dataHash: DataHash | null,
     message: Uint8Array | null,
@@ -145,7 +143,7 @@ export class StateTransitionClient {
     await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await this.authenticatorFactory.create(signingService, transactionData, token.state),
+      Authenticator.create(signingService, transactionData.hash, token.state.hash),
     );
 
     const inclusionProof = await this.client.getInclusionProof(requestId);
@@ -162,7 +160,6 @@ export class StateTransitionClient {
     token: Token,
     state: TokenState,
     transaction: Transaction<TransactionData>,
-    signingService: ISigningService,
   ): Promise<Token> {
     if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
       throw new Error('Unlock predicate verification failed');
@@ -177,20 +174,7 @@ export class StateTransitionClient {
       throw new Error('State data is not part of transaction.');
     }
 
-    // TODO: Figure out better way to handle aux
-    const [scheme] = transaction.data.recipient.split('://');
-    let aux: unknown = null;
-    switch (scheme) {
-      case AddressScheme.PUBLIC_KEY:
-        aux = {
-          saltSignature: await signingService.sign(transaction.data.salt),
-        };
-        break;
-      default:
-        throw new Error('Invalid address scheme');
-    }
-
-    return new Token(token.id, token.type, token.data, state, transactions, aux);
+    return new Token(token.id, token.type, token.data, state, transactions, null);
   }
 
   // TODO: Handle aux data
@@ -275,7 +259,7 @@ export class StateTransitionClient {
   }
 
   // TODO: Fix signingservice creation
-  public async getTokenStatus(token: Token, signingService: ISigningService): Promise<InclusionProofVerificationStatus> {
+  public async getTokenStatus(token: Token, signingService: ISigningService<ISignature>): Promise<InclusionProofVerificationStatus> {
     const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
     const inclusionProof = await this.client.getInclusionProof(requestId);
     // TODO: Check ownership?

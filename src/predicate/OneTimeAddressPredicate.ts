@@ -14,6 +14,7 @@ import { TokenType } from '../token/TokenType.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { Transaction } from '../transaction/Transaction.js';
 import { TransactionData } from '../transaction/TransactionData.js';
+import { ISignature } from '../../../shared/src/signing/ISignature.js';
 
 interface IPredicateDto {
   readonly type: PredicateType.ONE_TIME_ADDRESS;
@@ -75,7 +76,7 @@ export class OneTimeAddressPredicate implements IPredicate {
     tokenId: TokenId,
     tokenType: TokenType,
     recipient: string,
-    signingService: ISigningService,
+    signingService: ISigningService<ISignature>,
     hashAlgorithm: HashAlgorithm,
     nonce: Uint8Array,
   ): Promise<OneTimeAddressPredicate> {
