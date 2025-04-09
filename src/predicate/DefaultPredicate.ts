@@ -9,15 +9,15 @@ import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
+import { ISignature } from '../../../shared/src/signing/ISignature.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { Transaction } from '../transaction/Transaction.js';
 import { TransactionData } from '../transaction/TransactionData.js';
-import { ISignature } from '../../../shared/src/signing/ISignature.js';
 
 interface IPredicateDto {
-  readonly type: PredicateType.ONE_TIME_ADDRESS;
+  readonly type: PredicateType.DEFAULT;
   readonly publicKey: string;
   readonly algorithm: string;
   readonly hashAlgorithm: HashAlgorithm;
@@ -26,8 +26,8 @@ interface IPredicateDto {
 
 const textEncoder = new TextEncoder();
 
-export class OneTimeAddressPredicate implements IPredicate {
-  private static readonly TYPE = PredicateType.ONE_TIME_ADDRESS;
+export class DefaultPredicate implements IPredicate {
+  private static readonly TYPE = PredicateType.DEFAULT;
 
   private constructor(
     private readonly publicKey: Uint8Array,
@@ -44,43 +44,15 @@ export class OneTimeAddressPredicate implements IPredicate {
     return this._nonce;
   }
 
-  public static async createFromPublicKey(
-    tokenId: TokenId,
-    tokenType: TokenType,
-    recipient: string,
-    algorithm: string,
-    publicKey: Uint8Array,
-    hashAlgorithm: HashAlgorithm,
-    nonce: Uint8Array,
-  ): Promise<OneTimeAddressPredicate> {
-    const algorithmHash = await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest();
-    const hashAlgorithmHash = await new DataHasher(HashAlgorithm.SHA256)
-      .update(new Uint8Array([hashAlgorithm & 0xff00, hashAlgorithm & 0xff]))
-      .digest();
-
-    const hash = await new DataHasher(hashAlgorithm)
-      .update(textEncoder.encode(OneTimeAddressPredicate.TYPE))
-      .update(tokenId.encode())
-      .update(tokenType.encode())
-      .update(textEncoder.encode(recipient))
-      .update(algorithmHash.imprint)
-      .update(hashAlgorithmHash.imprint)
-      .update(publicKey)
-      .update(nonce)
-      .digest();
-
-    return new OneTimeAddressPredicate(publicKey, algorithm, hashAlgorithm, nonce, hash);
-  }
-
-  public static create(
+  public static createMaskedPredicate(
     tokenId: TokenId,
     tokenType: TokenType,
     recipient: string,
     signingService: ISigningService<ISignature>,
     hashAlgorithm: HashAlgorithm,
     nonce: Uint8Array,
-  ): Promise<OneTimeAddressPredicate> {
-    return OneTimeAddressPredicate.createFromPublicKey(
+  ): Promise<DefaultPredicate> {
+    return DefaultPredicate.createFromPublicKey(
       tokenId,
       tokenType,
       recipient,
@@ -88,6 +60,29 @@ export class OneTimeAddressPredicate implements IPredicate {
       signingService.publicKey,
       hashAlgorithm,
       nonce,
+    );
+  }
+
+  public static async createUnmaskedPredicate(
+    tokenId: TokenId,
+    tokenType: TokenType,
+    recipient: string,
+    signingService: ISigningService<ISignature>,
+    hashAlgorithm: HashAlgorithm,
+    salt: Uint8Array,
+  ): Promise<DefaultPredicate> {
+    // TODO: Do we hash salt? Verify signed salt?
+    const hash = await new DataHasher(HashAlgorithm.SHA256).update(salt).digest();
+    const saltSignature = await signingService.sign(hash.imprint);
+
+    return DefaultPredicate.createFromPublicKey(
+      tokenId,
+      tokenType,
+      recipient,
+      signingService.algorithm,
+      signingService.publicKey,
+      hashAlgorithm,
+      saltSignature.bytes,
     );
   }
 
@@ -110,12 +105,12 @@ export class OneTimeAddressPredicate implements IPredicate {
     tokenType: TokenType,
     recipient: string,
     data: unknown,
-  ): Promise<OneTimeAddressPredicate> {
-    if (!OneTimeAddressPredicate.isDto(data)) {
+  ): Promise<DefaultPredicate> {
+    if (!DefaultPredicate.isDto(data)) {
       throw new Error('Invalid one time address predicate dto');
     }
 
-    return OneTimeAddressPredicate.createFromPublicKey(
+    return DefaultPredicate.createFromPublicKey(
       tokenId,
       tokenType,
       recipient,
@@ -126,13 +121,41 @@ export class OneTimeAddressPredicate implements IPredicate {
     );
   }
 
+  private static async createFromPublicKey(
+    tokenId: TokenId,
+    tokenType: TokenType,
+    recipient: string,
+    algorithm: string,
+    publicKey: Uint8Array,
+    hashAlgorithm: HashAlgorithm,
+    nonce: Uint8Array,
+  ): Promise<DefaultPredicate> {
+    const algorithmHash = await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode(algorithm)).digest();
+    const hashAlgorithmHash = await new DataHasher(HashAlgorithm.SHA256)
+      .update(new Uint8Array([hashAlgorithm & 0xff00, hashAlgorithm & 0xff]))
+      .digest();
+
+    const hash = await new DataHasher(hashAlgorithm)
+      .update(textEncoder.encode(DefaultPredicate.TYPE))
+      .update(tokenId.encode())
+      .update(tokenType.encode())
+      .update(textEncoder.encode(recipient))
+      .update(algorithmHash.imprint)
+      .update(hashAlgorithmHash.imprint)
+      .update(publicKey)
+      .update(nonce)
+      .digest();
+
+    return new DefaultPredicate(publicKey, algorithm, hashAlgorithm, nonce, hash);
+  }
+
   public toDto(): IPredicateDto {
     return {
       algorithm: this.algorithm,
       hashAlgorithm: this.hashAlgorithm,
       nonce: HexConverter.encode(this.nonce),
       publicKey: HexConverter.encode(this.publicKey),
-      type: OneTimeAddressPredicate.TYPE,
+      type: DefaultPredicate.TYPE,
     };
   }
 

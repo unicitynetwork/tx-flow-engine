@@ -14,7 +14,6 @@ export interface ITokenDto {
   readonly data: string;
   readonly state: ITokenStateDto;
   readonly transactions: [ITransactionDto<MintTransactionData>, ...ITransactionDto<TransactionData>[]];
-  readonly aux: unknown;
 }
 
 export class Token {
@@ -24,7 +23,6 @@ export class Token {
     public readonly _data: Uint8Array,
     public readonly state: TokenState,
     public readonly transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
-    public readonly aux: unknown,
   ) {
     this._data = new Uint8Array(_data);
   }
@@ -35,7 +33,6 @@ export class Token {
 
   public toDto(): ITokenDto {
     return {
-      aux: this.aux,
       data: HexConverter.encode(this._data),
       id: this.id.toDto(),
       state: this.state.toDto(),

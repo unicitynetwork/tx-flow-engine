@@ -4,11 +4,13 @@ import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
+
 import { IAddress } from './address/IAddress.js';
+import { NameTagAddress } from './address/NameTagAddress.js';
 import { OneTimeAddress } from './address/OneTimeAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
+import { DefaultPredicate } from './predicate/DefaultPredicate.js';
 import { IPredicateFactory } from './predicate/IPredicateFactory.js';
-import { OneTimeAddressPredicate } from './predicate/OneTimeAddressPredicate.js';
 import { ITokenDto, Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
 import { TokenState } from './token/TokenState.js';
@@ -16,10 +18,8 @@ import { TokenType } from './token/TokenType.js';
 import { MintTransactionData } from './transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from './transaction/Transaction.js';
 import { TransactionData } from './transaction/TransactionData.js';
-import { DataHash } from '../../shared/src/hash/DataHash.js';
-import { ISigningService } from '../../shared/src/signing/ISigningService.js';
-import { ISignature } from '../../shared/src/signing/ISignature.js';
 import { Authenticator } from '../../shared/src/api/Authenticator.js';
+import { DataHash } from '../../shared/src/hash/DataHash.js';
 
 // TOKENID string SHA-256 hash
 const MINT_SUFFIX = HexConverter.decode('9e82002c144d7c5796c50f6db50a0c7bbd7f717ae3af6c6c71a3e9eba3022730');
@@ -27,9 +27,87 @@ const MINT_SUFFIX = HexConverter.decode('9e82002c144d7c5796c50f6db50a0c7bbd7f717
 const MINTER_SECRET = HexConverter.decode('495f414d5f554e4956455253414c5f4d494e5445525f464f525f');
 
 export class StateTransitionClient {
-  public constructor(
-    private readonly client: IAggregatorClient
-  ) {}
+  public constructor(private readonly client: IAggregatorClient) {}
+
+  public static async importToken(tokenDto: ITokenDto, predicateFactory: IPredicateFactory): Promise<Token> {
+    const tokenId = TokenId.create(HexConverter.decode(tokenDto.id));
+    const tokenType = TokenType.create(HexConverter.decode(tokenDto.type));
+    const tokenData = HexConverter.decode(tokenDto.data);
+
+    const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
+    const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
+
+    const mintTransaction = new Transaction(
+      await MintTransactionData.create(
+        tokenId,
+        tokenType,
+        tokenData,
+        sourceState,
+        tokenDto.transactions[0].data.recipient,
+        HexConverter.decode(tokenDto.transactions[0].data.salt),
+        tokenDto.transactions[0].data.dataHash ? DataHash.fromDto(tokenDto.transactions[0].data.dataHash) : null,
+      ),
+      InclusionProof.fromDto(tokenDto.transactions[0].inclusionProof),
+    );
+
+    const mintRequestId = await RequestId.create(signingService.publicKey, sourceState.hash);
+    if (!(await mintTransaction.inclusionProof.verify(mintRequestId.toBigInt()))) {
+      throw new Error('Mint inclusion proof verification failed.');
+    }
+
+    const transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] = [mintTransaction];
+
+    let previousTransaction: Transaction<MintTransactionData | TransactionData> = mintTransaction;
+    for (let i = 1; i < tokenDto.transactions.length; i++) {
+      const { data, inclusionProof } = tokenDto.transactions[i] as ITransactionDto<TransactionData>;
+      const transaction = new Transaction(
+        await TransactionData.create(
+          await TokenState.create(
+            await predicateFactory.create(
+              tokenId,
+              tokenType,
+              previousTransaction.data.recipient,
+              data.sourceState.unlockPredicate,
+            ),
+            data.sourceState.data ? HexConverter.decode(data.sourceState.data) : null,
+          ),
+          data.recipient,
+          HexConverter.decode(data.salt),
+          data.dataHash ? DataHash.fromDto(data.dataHash) : null,
+          data.message ? HexConverter.decode(data.message) : null,
+          await Promise.all(data.nameTags.map((input) => this.importToken(input, predicateFactory))),
+        ),
+        InclusionProof.fromDto(inclusionProof),
+      );
+
+      if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, transaction.data.sourceState))) {
+        throw new Error('State data is not part of transaction.');
+      }
+
+      if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
+        throw new Error('Predicate verification failed');
+      }
+
+      transactions.push(transaction);
+      previousTransaction = transaction;
+    }
+
+    const state = await TokenState.create(
+      await predicateFactory.create(
+        tokenId,
+        tokenType,
+        previousTransaction.data.recipient,
+        tokenDto.state.unlockPredicate,
+      ),
+      tokenDto.state.data ? HexConverter.decode(tokenDto.state.data) : null,
+    );
+
+    if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, state))) {
+      throw new Error('State data is not part of transaction.');
+    }
+
+    return new Token(tokenId, tokenType, tokenData, state, transactions);
+  }
 
   private static async isStateDataInTransaction(
     transaction: Transaction<TransactionData | MintTransactionData>,
@@ -48,6 +126,7 @@ export class StateTransitionClient {
     return !state.data;
   }
 
+  // TODO: Allow different type of addresses
   public async mint(
     tokenId: TokenId,
     tokenType: TokenType,
@@ -107,7 +186,7 @@ export class StateTransitionClient {
     }
 
     const state = await TokenState.create(
-      await OneTimeAddressPredicate.create(
+      await DefaultPredicate.createUnmaskedPredicate(
         tokenId,
         tokenType,
         recipient.toDto(),
@@ -118,7 +197,7 @@ export class StateTransitionClient {
       data,
     );
 
-    return new Token(tokenId, tokenType, tokenData, state, [new Transaction(transactionData, inclusionProof)], '');
+    return new Token(tokenId, tokenType, tokenData, state, [new Transaction(transactionData, inclusionProof)]);
   }
 
   public async createTransaction(
@@ -136,7 +215,7 @@ export class StateTransitionClient {
       salt,
       dataHash,
       message,
-      token.aux,
+      recipient instanceof NameTagAddress ? recipient.tokens : [],
     );
 
     const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
@@ -174,93 +253,11 @@ export class StateTransitionClient {
       throw new Error('State data is not part of transaction.');
     }
 
-    return new Token(token.id, token.type, token.data, state, transactions, null);
+    return new Token(token.id, token.type, token.data, state, transactions);
   }
 
-  // TODO: Handle aux data
-  public async importToken(tokenDto: ITokenDto, predicateFactory: IPredicateFactory): Promise<Token> {
-    const tokenId = TokenId.create(HexConverter.decode(tokenDto.id));
-    const tokenType = TokenType.create(HexConverter.decode(tokenDto.type));
-    const tokenData = HexConverter.decode(tokenDto.data);
-
-    const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
-    const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
-
-    const mintTransaction = new Transaction(
-      await MintTransactionData.create(
-        tokenId,
-        tokenType,
-        tokenData,
-        sourceState,
-        tokenDto.transactions[0].data.recipient,
-        HexConverter.decode(tokenDto.transactions[0].data.salt),
-        tokenDto.transactions[0].data.dataHash ? DataHash.fromDto(tokenDto.transactions[0].data.dataHash) : null,
-      ),
-      InclusionProof.fromDto(tokenDto.transactions[0].inclusionProof),
-    );
-
-    const mintRequestId = await RequestId.create(signingService.publicKey, sourceState.hash);
-    if (!(await mintTransaction.inclusionProof.verify(mintRequestId.toBigInt()))) {
-      throw new Error('Mint inclusion proof verification failed.');
-    }
-
-    const transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] = [mintTransaction];
-
-    let previousTransaction: Transaction<MintTransactionData | TransactionData> = mintTransaction;
-    for (let i = 1; i < tokenDto.transactions.length; i++) {
-      const { data, inclusionProof } = tokenDto.transactions[i] as ITransactionDto<TransactionData>;
-      const transaction = new Transaction(
-        await TransactionData.create(
-          await TokenState.create(
-            await predicateFactory.create(
-              tokenId,
-              tokenType,
-              previousTransaction.data.recipient,
-              data.sourceState.unlockPredicate,
-            ),
-            data.sourceState.data ? HexConverter.decode(data.sourceState.data) : null,
-          ),
-          data.recipient,
-          HexConverter.decode(data.salt),
-          data.dataHash ? DataHash.fromDto(data.dataHash) : null,
-          data.message ? HexConverter.decode(data.message) : null,
-          data.aux,
-        ),
-        InclusionProof.fromDto(inclusionProof),
-      );
-
-      if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, transaction.data.sourceState))) {
-        throw new Error('State data is not part of transaction.');
-      }
-
-      if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
-        throw new Error('Predicate verification failed');
-      }
-
-      transactions.push(transaction);
-      previousTransaction = transaction;
-    }
-
-    const state = await TokenState.create(
-      await predicateFactory.create(
-        tokenId,
-        tokenType,
-        previousTransaction.data.recipient,
-        tokenDto.state.unlockPredicate,
-      ),
-      tokenDto.state.data ? HexConverter.decode(tokenDto.state.data) : null,
-    );
-
-    if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, state))) {
-      throw new Error('State data is not part of transaction.');
-    }
-
-    return new Token(tokenId, tokenType, tokenData, state, transactions, tokenDto.aux);
-  }
-
-  // TODO: Fix signingservice creation
-  public async getTokenStatus(token: Token, signingService: ISigningService<ISignature>): Promise<InclusionProofVerificationStatus> {
-    const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
+  public async getTokenStatus(token: Token, publicKey: Uint8Array): Promise<InclusionProofVerificationStatus> {
+    const requestId = await RequestId.create(publicKey, token.state.hash);
     const inclusionProof = await this.client.getInclusionProof(requestId);
     // TODO: Check ownership?
     return inclusionProof.verify(requestId.toBigInt());

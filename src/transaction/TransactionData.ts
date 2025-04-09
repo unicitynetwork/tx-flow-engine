@@ -4,6 +4,7 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { DataHash } from '../../../shared/src/hash/DataHash.js';
+import { ITokenDto, Token } from '../token/Token.js';
 import { ITokenStateDto, TokenState } from '../token/TokenState.js';
 
 export interface ITransactionDataDto {
@@ -12,7 +13,7 @@ export interface ITransactionDataDto {
   readonly salt: string;
   readonly dataHash: string | null;
   readonly message: string | null;
-  readonly aux: unknown;
+  readonly nameTags: ITokenDto[];
 }
 
 const textEncoder = new TextEncoder();
@@ -25,9 +26,10 @@ export class TransactionData {
     public readonly salt: Uint8Array,
     public readonly dataHash: DataHash | null,
     private readonly _message: Uint8Array | null,
-    public readonly aux: unknown,
+    private readonly nameTags: Token[] = [],
   ) {
     this._message = _message ? new Uint8Array(_message) : null;
+    this.nameTags = Array.from(nameTags);
   }
 
   public get message(): Uint8Array | null {
@@ -44,7 +46,7 @@ export class TransactionData {
     salt: Uint8Array,
     dataHash: DataHash | null,
     message: Uint8Array | null,
-    aux: unknown,
+    nameTags: Token[] = [],
   ): Promise<TransactionData> {
     return new TransactionData(
       await new DataHasher(HashAlgorithm.SHA256)
@@ -59,15 +61,15 @@ export class TransactionData {
       salt,
       dataHash,
       message,
-      aux,
+      nameTags,
     );
   }
 
   public toDto(): ITransactionDataDto {
     return {
-      aux: this.aux,
       dataHash: this.dataHash?.toDto() ?? null,
       message: this._message ? HexConverter.encode(this._message) : null,
+      nameTags: this.nameTags.map((token) => token.toDto()),
       recipient: this.recipient,
       salt: HexConverter.encode(this.salt),
       sourceState: this.sourceState.toDto(),
@@ -83,8 +85,9 @@ export class TransactionData {
         Salt: ${HexConverter.encode(this.salt)}
         Data: ${this.dataHash?.toString() ?? null}
         Message: ${this._message ? HexConverter.encode(this._message) : null}
+        NameTags: 
+          ${this.nameTags.map((token) => token.toString())}
         Hash: ${this.hash.toString()}
-        Aux: ${this.aux}
     `;
   }
 }
