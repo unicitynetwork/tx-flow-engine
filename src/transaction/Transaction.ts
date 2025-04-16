@@ -1,4 +1,5 @@
-import { IInclusionProofDto, InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import type { IInclusionProofDto } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { IMintTransactionDataDto, MintTransactionData } from './MintTransactionData.js';

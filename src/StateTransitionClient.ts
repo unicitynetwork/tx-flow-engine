@@ -1,5 +1,7 @@
+import { Authenticator } from '@unicitylabs/commons/lib/api/Authenticator.js';
 import { InclusionProof, InclusionProofVerificationStatus } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
+import { DataHash } from '@unicitylabs/commons/lib/hash/DataHash.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
@@ -18,8 +20,6 @@ import { TokenType } from './token/TokenType.js';
 import { MintTransactionData } from './transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from './transaction/Transaction.js';
 import { TransactionData } from './transaction/TransactionData.js';
-import { Authenticator } from '../../shared/src/api/Authenticator.js';
-import { DataHash } from '../../shared/src/hash/DataHash.js';
 
 // TOKENID string SHA-256 hash
 const MINT_SUFFIX = HexConverter.decode('9e82002c144d7c5796c50f6db50a0c7bbd7f717ae3af6c6c71a3e9eba3022730');
@@ -222,7 +222,7 @@ export class StateTransitionClient {
     await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      Authenticator.create(signingService, transactionData.hash, token.state.hash),
+      await Authenticator.create(signingService, transactionData.hash, token.state.hash),
     );
 
     const inclusionProof = await this.client.getInclusionProof(requestId);

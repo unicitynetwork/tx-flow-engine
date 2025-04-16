@@ -5,6 +5,7 @@
   "main": "state_machine.js",
   "type": "module",
   "scripts": {
+    "build": "tsc --noEmit",
     "lint": "eslint \"src/**/*\"",
     "lint:fix": "eslint \"src/**/*\" --fix",
     "test": "jest tests/",

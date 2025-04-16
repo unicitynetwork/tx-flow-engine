@@ -1,6 +1,9 @@
-import { ISubmitStateTransitionResponseDto } from '@unicitylabs/commons/lib/api/ISubmitStateTransitionResponseDto.js';
+import type { IInclusionProofDto } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 
-import { InclusionProof } from '../../../shared/src/api/InclusionProof.js';
+interface ISubmitStateTransitionResponseDto {
+  readonly inclusionProof: IInclusionProofDto;
+}
 
 export class SubmitStateTransitionResponse {
   public constructor(public readonly inclusionProof: InclusionProof) {}

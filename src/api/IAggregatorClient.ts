@@ -1,8 +1,8 @@
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
+import { DataHash } from '@unicitylabs/commons/lib/hash/DataHash.js';
 
-import { DataHash } from '../../../shared/src/hash/DataHash.js';
-import { IAuthenticator } from '../IAuthenticatorFactory.js';
+import { IAuthenticator } from './IAuthenticator.js';
 import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
 
 export interface IAggregatorClient {

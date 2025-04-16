@@ -1,15 +1,15 @@
 import { InclusionProofVerificationStatus } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
+import { DataHash } from '@unicitylabs/commons/lib/hash/DataHash.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
-import { ISigningService } from '@unicitylabs/commons/lib/signing/ISigningService.js';
+import type { ISignature } from '@unicitylabs/commons/lib/signing/ISignature.js';
+import type { ISigningService } from '@unicitylabs/commons/lib/signing/ISigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
-import { DataHash } from '../../../shared/src/hash/DataHash.js';
-import { ISignature } from '../../../shared/src/signing/ISignature.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
