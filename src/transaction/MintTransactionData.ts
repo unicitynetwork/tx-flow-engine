@@ -65,11 +65,10 @@ export class MintTransactionData {
 
   public toString(): string {
     return dedent`
-      MintTransaction
+      MintTransactionData
         Recipient: ${this.recipient}
         Salt: ${HexConverter.encode(this.salt)}
         Data: ${this.dataHash?.toString() ?? null}
-        Hash: ${this.hash.toString()}
-    `;
+        Hash: ${this.hash.toString()}`;
   }
 }

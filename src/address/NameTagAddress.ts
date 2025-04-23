@@ -2,23 +2,14 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { AddressScheme } from './AddressScheme.js';
 import { IAddress } from './IAddress.js';
-import { Token } from '../token/Token.js';
 
 export class NameTagAddress implements IAddress {
-  public constructor(
-    private readonly _data: Uint8Array,
-    private readonly _tokens: Token[],
-  ) {
+  public constructor(private readonly _data: Uint8Array) {
     this._data = new Uint8Array(_data);
-    this._tokens = _tokens.slice();
   }
 
   public get data(): Uint8Array {
     return new Uint8Array(this._data);
-  }
-
-  public get tokens(): Token[] {
-    return Array.from(this._tokens);
   }
 
   public get scheme(): AddressScheme {

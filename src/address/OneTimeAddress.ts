@@ -55,7 +55,7 @@ export class OneTimeAddress implements IAddress {
       .digest();
 
     return new OneTimeAddress(
-      await new DataHasher(hashAlgorithm)
+      await new DataHasher(HashAlgorithm.SHA256)
         .update(tokenType.encode())
         .update(algorithmHash.data)
         .update(hashAlgorithmHash.data)
@@ -65,6 +65,7 @@ export class OneTimeAddress implements IAddress {
     );
   }
 
+  // TODO: Should hash algorithm be derivable from the string?
   public toDto(): string {
     return `${this.scheme}://${this._data.toDto()}`;
   }

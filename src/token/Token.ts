@@ -14,6 +14,7 @@ export interface ITokenDto {
   readonly data: string;
   readonly state: ITokenStateDto;
   readonly transactions: [ITransactionDto<MintTransactionData>, ...ITransactionDto<TransactionData>[]];
+  readonly nametagTokens: ITokenDto[];
 }
 
 export class Token {
@@ -22,19 +23,31 @@ export class Token {
     public readonly type: TokenType,
     public readonly _data: Uint8Array,
     public readonly state: TokenState,
-    public readonly transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
+    private readonly _transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
+    private readonly _nametagTokens: Token[] = [],
   ) {
     this._data = new Uint8Array(_data);
+    this._nametagTokens = [..._nametagTokens];
+    this._transactions = [..._transactions];
   }
 
   public get data(): Uint8Array {
     return new Uint8Array(this._data);
   }
 
+  public get nametagTokens(): Token[] {
+    return [...this._nametagTokens];
+  }
+
+  public get transactions(): [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] {
+    return [...this._transactions];
+  }
+
   public toDto(): ITokenDto {
     return {
       data: HexConverter.encode(this._data),
       id: this.id.toDto(),
+      nametagTokens: this.nametagTokens.map((token) => token.toDto()),
       state: this.state.toDto(),
       transactions: this.transactions.map((transaction) => transaction.toDto()) as [
         ITransactionDto<MintTransactionData>,
@@ -46,13 +59,17 @@ export class Token {
 
   public toString(): string {
     return dedent`
-        MintTransition
+        Token
           Id: ${this.id.toString()}
           Type: ${this.type.toString()}
           Data: ${HexConverter.encode(this._data)}
-          State: ${this.state.toString()}
-          Transactions: 
-            ${this.transactions.map((transition) => transition.toString())}
+          ${this.state.toString()}
+          Transactions: [
+            ${this.transactions.map((transition) => transition.toString()).join('\n')}
+          ]
+          Nametag Tokens: [ 
+            ${this.nametagTokens.map((token) => token.toString()).join('\n')}
+          ]
       `;
   }
 }

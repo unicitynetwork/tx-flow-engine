@@ -8,7 +8,6 @@ import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { IAddress } from './address/IAddress.js';
-import { NameTagAddress } from './address/NameTagAddress.js';
 import { OneTimeAddress } from './address/OneTimeAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
 import { DefaultPredicate } from './predicate/DefaultPredicate.js';
@@ -63,12 +62,7 @@ export class StateTransitionClient {
       const transaction = new Transaction(
         await TransactionData.create(
           await TokenState.create(
-            await predicateFactory.create(
-              tokenId,
-              tokenType,
-              previousTransaction.data.recipient,
-              data.sourceState.unlockPredicate,
-            ),
+            await predicateFactory.create(tokenId, tokenType, data.sourceState.unlockPredicate),
             data.sourceState.data ? HexConverter.decode(data.sourceState.data) : null,
           ),
           data.recipient,
@@ -84,7 +78,7 @@ export class StateTransitionClient {
         throw new Error('State data is not part of transaction.');
       }
 
-      if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
+      if (!(await transaction.data.sourceState.unlockPredicate.verify(previousTransaction))) {
         throw new Error('Predicate verification failed');
       }
 
@@ -93,17 +87,16 @@ export class StateTransitionClient {
     }
 
     const state = await TokenState.create(
-      await predicateFactory.create(
-        tokenId,
-        tokenType,
-        previousTransaction.data.recipient,
-        tokenDto.state.unlockPredicate,
-      ),
+      await predicateFactory.create(tokenId, tokenType, tokenDto.state.unlockPredicate),
       tokenDto.state.data ? HexConverter.decode(tokenDto.state.data) : null,
     );
 
     if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, state))) {
       throw new Error('State data is not part of transaction.');
+    }
+
+    if (!(await state.unlockPredicate.verify(previousTransaction))) {
+      throw new Error('Predicate verification failed');
     }
 
     return new Token(tokenId, tokenType, tokenData, state, transactions);
@@ -169,28 +162,15 @@ export class StateTransitionClient {
       throw new Error('Invalid inclusion proof hash algorithm.');
     }
 
-    const expectedRecipient = await OneTimeAddress.createFromPublicKey(
-      tokenType,
-      inclusionProof.authenticator.algorithm,
-      HashAlgorithm.SHA256,
-      inclusionProof.authenticator.publicKey,
-      nonce,
-    );
-
-    if (expectedRecipient.toDto() !== recipient.toDto()) {
-      throw new Error('Recipient mismatch');
-    }
-
     if (!inclusionProof.transactionHash.equals(transactionData.hash)) {
       throw new Error('Payload hash mismatch');
     }
 
     const state = await TokenState.create(
-      await DefaultPredicate.createUnmaskedPredicate(
+      await DefaultPredicate.createMaskedPredicate(
         tokenId,
         tokenType,
-        recipient.toDto(),
-        signingService,
+        await SigningService.createFromSecret(secret, nonce),
         HashAlgorithm.SHA256,
         nonce,
       ),
@@ -209,38 +189,37 @@ export class StateTransitionClient {
     dataHash: DataHash | null,
     message: Uint8Array | null,
   ): Promise<Transaction<TransactionData>> {
+    if (HexConverter.encode(token.state.unlockPredicate.publicKey) !== HexConverter.encode(signingService.publicKey)) {
+      throw new Error('Failed to unlock token');
+    }
+
+    // TODO: Add transactiondata as parameter?
     const transactionData = await TransactionData.create(
       token.state,
       recipient.toDto(),
       salt,
       dataHash,
       message,
-      recipient instanceof NameTagAddress ? recipient.tokens : [],
+      token.nametagTokens,
     );
 
     const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
-    await this.client.submitTransaction(
+    const { inclusionProof } = await this.client.submitTransaction(
       requestId,
       transactionData.hash,
       await Authenticator.create(signingService, transactionData.hash, token.state.hash),
     );
 
-    const inclusionProof = await this.client.getInclusionProof(requestId);
-    const transaction = new Transaction(transactionData, inclusionProof);
-
-    if (!(await token.state.unlockPredicate.verify(transaction))) {
-      throw new Error('Transaction verification failed against unlock predicate');
-    }
-
-    return transaction;
+    return new Transaction(transactionData, inclusionProof);
   }
 
   public async finishTransaction(
     token: Token,
     state: TokenState,
     transaction: Transaction<TransactionData>,
+    nametagTokens: Token[] = [],
   ): Promise<Token> {
-    if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
+    if (!(await state.unlockPredicate.verify(transaction))) {
       throw new Error('Unlock predicate verification failed');
     }
 
@@ -253,7 +232,7 @@ export class StateTransitionClient {
       throw new Error('State data is not part of transaction.');
     }
 
-    return new Token(token.id, token.type, token.data, state, transactions);
+    return new Token(token.id, token.type, token.data, state, transactions, nametagTokens);
   }
 
   public async getTokenStatus(token: Token, publicKey: Uint8Array): Promise<InclusionProofVerificationStatus> {

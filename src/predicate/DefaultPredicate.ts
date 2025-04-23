@@ -30,14 +30,18 @@ export class DefaultPredicate implements IPredicate {
   private static readonly TYPE = PredicateType.DEFAULT;
 
   private constructor(
-    private readonly publicKey: Uint8Array,
+    private readonly _publicKey: Uint8Array,
     private readonly algorithm: string,
     private readonly hashAlgorithm: HashAlgorithm,
     private readonly _nonce: Uint8Array,
     public readonly hash: DataHash,
   ) {
-    this.publicKey = new Uint8Array(publicKey);
+    this._publicKey = new Uint8Array(_publicKey);
     this._nonce = new Uint8Array(_nonce);
+  }
+
+  public get publicKey(): Uint8Array {
+    return this._publicKey;
   }
 
   public get nonce(): Uint8Array {
@@ -47,7 +51,6 @@ export class DefaultPredicate implements IPredicate {
   public static createMaskedPredicate(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: string,
     signingService: ISigningService<ISignature>,
     hashAlgorithm: HashAlgorithm,
     nonce: Uint8Array,
@@ -55,7 +58,6 @@ export class DefaultPredicate implements IPredicate {
     return DefaultPredicate.createFromPublicKey(
       tokenId,
       tokenType,
-      recipient,
       signingService.algorithm,
       signingService.publicKey,
       hashAlgorithm,
@@ -66,7 +68,6 @@ export class DefaultPredicate implements IPredicate {
   public static async createUnmaskedPredicate(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: string,
     signingService: ISigningService<ISignature>,
     hashAlgorithm: HashAlgorithm,
     salt: Uint8Array,
@@ -78,7 +79,6 @@ export class DefaultPredicate implements IPredicate {
     return DefaultPredicate.createFromPublicKey(
       tokenId,
       tokenType,
-      recipient,
       signingService.algorithm,
       signingService.publicKey,
       hashAlgorithm,
@@ -100,12 +100,7 @@ export class DefaultPredicate implements IPredicate {
     );
   }
 
-  public static fromDto(
-    tokenId: TokenId,
-    tokenType: TokenType,
-    recipient: string,
-    data: unknown,
-  ): Promise<DefaultPredicate> {
+  public static fromDto(tokenId: TokenId, tokenType: TokenType, data: unknown): Promise<DefaultPredicate> {
     if (!DefaultPredicate.isDto(data)) {
       throw new Error('Invalid one time address predicate dto');
     }
@@ -113,7 +108,6 @@ export class DefaultPredicate implements IPredicate {
     return DefaultPredicate.createFromPublicKey(
       tokenId,
       tokenType,
-      recipient,
       data.algorithm,
       HexConverter.decode(data.publicKey),
       data.hashAlgorithm,
@@ -124,7 +118,6 @@ export class DefaultPredicate implements IPredicate {
   private static async createFromPublicKey(
     tokenId: TokenId,
     tokenType: TokenType,
-    recipient: string,
     algorithm: string,
     publicKey: Uint8Array,
     hashAlgorithm: HashAlgorithm,
@@ -139,7 +132,6 @@ export class DefaultPredicate implements IPredicate {
       .update(textEncoder.encode(DefaultPredicate.TYPE))
       .update(tokenId.encode())
       .update(tokenType.encode())
-      .update(textEncoder.encode(recipient))
       .update(algorithmHash.imprint)
       .update(hashAlgorithmHash.imprint)
       .update(publicKey)
@@ -163,13 +155,13 @@ export class DefaultPredicate implements IPredicate {
     // Verify if input state and public key are correct.
     if (
       HexConverter.encode(transaction.inclusionProof.authenticator.publicKey) !== HexConverter.encode(this.publicKey) ||
-      transaction.inclusionProof.authenticator.stateHash.equals(transaction.data.sourceState.hash)
+      !transaction.inclusionProof.authenticator.stateHash.equals(transaction.data.sourceState.hash)
     ) {
       return false; // input mismatch
     }
 
     // Verify if transaction data is valid.
-    if (!transaction.inclusionProof.authenticator.verify(transaction.data.hash)) {
+    if (!(await transaction.inclusionProof.authenticator.verify(transaction.data.hash))) {
       return false;
     }
 
@@ -181,12 +173,11 @@ export class DefaultPredicate implements IPredicate {
 
   public toString(): string {
     return dedent`
-          PublicKeyPredicate
+          DefaultPredicate
             PublicKey: ${HexConverter.encode(this.publicKey)}
             Algorithm: ${this.algorithm}
             Hash Algorithm: ${HashAlgorithm[this.hashAlgorithm]}
             Nonce: ${HexConverter.encode(this.nonce)}
-            Hash: ${this.hash.toString()}
-        `;
+            Hash: ${this.hash.toString()}`;
   }
 }

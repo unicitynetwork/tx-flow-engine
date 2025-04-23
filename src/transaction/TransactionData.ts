@@ -78,16 +78,15 @@ export class TransactionData {
 
   public toString(): string {
     return dedent`
-      Transition
-        SourceState: 
-          ${this.sourceState.toString()}
+      TransactionData
+        ${this.sourceState.toString()}
         Recipient: ${this.recipient.toString()}
         Salt: ${HexConverter.encode(this.salt)}
         Data: ${this.dataHash?.toString() ?? null}
         Message: ${this._message ? HexConverter.encode(this._message) : null}
-        NameTags: 
-          ${this.nameTags.map((token) => token.toString())}
-        Hash: ${this.hash.toString()}
-    `;
+        NameTags: [
+          ${this.nameTags.map((token) => token.toString()).join('\n')}
+        ]
+        Hash: ${this.hash.toString()}`;
   }
 }

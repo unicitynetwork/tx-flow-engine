@@ -9,6 +9,7 @@ export interface IPredicateDto {
 }
 
 export interface IPredicate {
+  readonly publicKey: Uint8Array;
   readonly hash: DataHash;
   readonly nonce: Uint8Array;
 

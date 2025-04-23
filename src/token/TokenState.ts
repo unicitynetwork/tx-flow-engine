@@ -49,9 +49,9 @@ export class TokenState {
   public toString(): string {
     return dedent`
         TokenState
-          UnlockPredicate: ${this.unlockPredicate.toString()}
+          UnlockPredicate: 
+            ${this.unlockPredicate.toString()}
           Data: ${this._data ? HexConverter.encode(this._data) : null}
-          Hash: ${this.hash.toString()}
-      `;
+          Hash: ${this.hash.toString()}`;
   }
 }
