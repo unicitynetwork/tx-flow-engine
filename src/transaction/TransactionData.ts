@@ -78,7 +78,7 @@ export class TransactionData {
 
   public toString(): string {
     return dedent`
-      TransactionData
+      TransactionData:
         ${this.sourceState.toString()}
         Recipient: ${this.recipient.toString()}
         Salt: ${HexConverter.encode(this.salt)}

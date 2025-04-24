@@ -7,11 +7,11 @@ import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
+import { DirectAddress } from './address/DirectAddress.js';
 import { IAddress } from './address/IAddress.js';
-import { OneTimeAddress } from './address/OneTimeAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
-import { DefaultPredicate } from './predicate/DefaultPredicate.js';
 import { IPredicateFactory } from './predicate/IPredicateFactory.js';
+import { MaskedPredicate } from './predicate/MaskedPredicate.js';
 import { ITokenDto, Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
 import { TokenState } from './token/TokenState.js';
@@ -74,6 +74,14 @@ export class StateTransitionClient {
         InclusionProof.fromDto(inclusionProof),
       );
 
+      // TODO: Move address processing to a separate method
+      const expectedRecipient = await DirectAddress.create(
+        transaction.data.sourceState.unlockPredicate.reference.imprint,
+      );
+      if (expectedRecipient.toDto() !== previousTransaction.data.recipient) {
+        throw new Error('Recipient address mismatch');
+      }
+
       if (!(await StateTransitionClient.isStateDataInTransaction(previousTransaction, transaction.data.sourceState))) {
         throw new Error('State data is not part of transaction.');
       }
@@ -119,7 +127,6 @@ export class StateTransitionClient {
     return !state.data;
   }
 
-  // TODO: Allow different type of addresses
   public async mint(
     tokenId: TokenId,
     tokenType: TokenType,
@@ -129,7 +136,15 @@ export class StateTransitionClient {
     nonce: Uint8Array,
     salt: Uint8Array,
   ): Promise<Token> {
-    const recipient = await OneTimeAddress.create(tokenType, secret, nonce, HashAlgorithm.SHA256);
+    const predicate = await MaskedPredicate.create(
+      tokenId,
+      tokenType,
+      await SigningService.createFromSecret(secret, nonce),
+      HashAlgorithm.SHA256,
+      nonce,
+    );
+
+    const recipient = await DirectAddress.create(predicate.reference.imprint);
 
     const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
@@ -166,48 +181,28 @@ export class StateTransitionClient {
       throw new Error('Payload hash mismatch');
     }
 
-    const state = await TokenState.create(
-      await DefaultPredicate.createMaskedPredicate(
-        tokenId,
-        tokenType,
-        await SigningService.createFromSecret(secret, nonce),
-        HashAlgorithm.SHA256,
-        nonce,
-      ),
-      data,
-    );
+    const state = await TokenState.create(predicate, data);
 
     return new Token(tokenId, tokenType, tokenData, state, [new Transaction(transactionData, inclusionProof)]);
   }
 
   public async createTransaction(
-    token: Token,
-    recipient: IAddress,
+    transactionData: TransactionData,
     // TODO: Create methods for this signingService to be correctly built, based on what type of address is given
     signingService: SigningService,
-    salt: Uint8Array,
-    dataHash: DataHash | null,
-    message: Uint8Array | null,
   ): Promise<Transaction<TransactionData>> {
-    if (HexConverter.encode(token.state.unlockPredicate.publicKey) !== HexConverter.encode(signingService.publicKey)) {
+    if (
+      HexConverter.encode(transactionData.sourceState.unlockPredicate.publicKey) !==
+      HexConverter.encode(signingService.publicKey)
+    ) {
       throw new Error('Failed to unlock token');
     }
 
-    // TODO: Add transactiondata as parameter?
-    const transactionData = await TransactionData.create(
-      token.state,
-      recipient.toDto(),
-      salt,
-      dataHash,
-      message,
-      token.nametagTokens,
-    );
-
-    const requestId = await RequestId.create(signingService.publicKey, token.state.hash);
+    const requestId = await RequestId.create(signingService.publicKey, transactionData.sourceState.hash);
     const { inclusionProof } = await this.client.submitTransaction(
       requestId,
       transactionData.hash,
-      await Authenticator.create(signingService, transactionData.hash, token.state.hash),
+      await Authenticator.create(signingService, transactionData.hash, transactionData.sourceState.hash),
     );
 
     return new Transaction(transactionData, inclusionProof);
@@ -221,6 +216,13 @@ export class StateTransitionClient {
   ): Promise<Token> {
     if (!(await state.unlockPredicate.verify(transaction))) {
       throw new Error('Unlock predicate verification failed');
+    }
+
+    // TODO: Move address processing to a separate method
+    // TODO: Resolve proxy address
+    const expectedAddress = await DirectAddress.create(state.unlockPredicate.reference.imprint);
+    if (expectedAddress.toDto() !== transaction.data.recipient) {
+      throw new Error('Recipient address mismatch');
     }
 
     const transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] = [

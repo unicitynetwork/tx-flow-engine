@@ -59,7 +59,7 @@ export class Token {
 
   public toString(): string {
     return dedent`
-        Token
+        Token:
           Id: ${this.id.toString()}
           Type: ${this.type.toString()}
           Data: ${HexConverter.encode(this._data)}

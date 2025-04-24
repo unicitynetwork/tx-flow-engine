@@ -1,3 +1,4 @@
 export enum PredicateType {
-  DEFAULT = 'DEFAULT',
+  MASKED = 'MASKED',
+  UNMASKED = 'UNMASKED',
 }

@@ -29,7 +29,7 @@ export class Transaction<T extends TransactionData | MintTransactionData> {
 
   public toString(): string {
     return dedent`
-        Transaction
+        Transaction:
           ${this.data.toString()}
           ${this.inclusionProof.toString()}`;
   }

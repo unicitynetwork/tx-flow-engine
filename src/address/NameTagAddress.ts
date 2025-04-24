@@ -13,7 +13,7 @@ export class NameTagAddress implements IAddress {
   }
 
   public get scheme(): AddressScheme {
-    return AddressScheme.NAMETAG;
+    return AddressScheme.PROXY;
   }
 
   public toDto(): string {
