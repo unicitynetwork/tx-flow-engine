@@ -10,8 +10,9 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { DirectAddress } from './address/DirectAddress.js';
 import { IAddress } from './address/IAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
+import { SubmitCommitmentStatus } from './api/SubmitCommitmentResponse.js';
+import { Commitment } from './Commitment.js';
 import { IPredicateFactory } from './predicate/IPredicateFactory.js';
-import { MaskedPredicate } from './predicate/MaskedPredicate.js';
 import { ITokenDto, Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
 import { TokenState } from './token/TokenState.js';
@@ -127,25 +128,14 @@ export class StateTransitionClient {
     return !state.data;
   }
 
-  public async mint(
+  public async submitMintTransaction(
+    recipient: IAddress,
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: Uint8Array,
     data: Uint8Array | null,
-    secret: Uint8Array,
-    nonce: Uint8Array,
     salt: Uint8Array,
-  ): Promise<Token> {
-    const predicate = await MaskedPredicate.create(
-      tokenId,
-      tokenType,
-      await SigningService.createFromSecret(secret, nonce),
-      HashAlgorithm.SHA256,
-      nonce,
-    );
-
-    const recipient = await DirectAddress.create(predicate.reference.imprint);
-
+  ): Promise<Commitment<MintTransactionData>> {
     const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
 
@@ -161,12 +151,43 @@ export class StateTransitionClient {
       data ? await new DataHasher(HashAlgorithm.SHA256).update(data).digest() : null,
     );
 
-    const { inclusionProof } = await this.client.submitTransaction(
-      requestId,
-      transactionData.hash,
-      await Authenticator.create(signingService, transactionData.hash, sourceState.hash),
-    );
+    const authenticator = await Authenticator.create(signingService, transactionData.hash, sourceState.hash);
 
+    const result = await this.client.submitTransaction(requestId, transactionData.hash, authenticator);
+
+    if (result.status !== SubmitCommitmentStatus.SUCCESS) {
+      throw new Error(`Could not submit transaction: ${result.status}`);
+    }
+
+    return new Commitment(requestId, transactionData, authenticator);
+  }
+
+  public async submitTransaction(
+    transactionData: TransactionData,
+    signingService: SigningService,
+  ): Promise<Commitment<TransactionData>> {
+    // TODO: Unlock token before submitting, tho user can do themselves.
+
+    const requestId = await RequestId.create(signingService.publicKey, transactionData.sourceState.hash);
+
+    const authenticator = await Authenticator.create(
+      signingService,
+      transactionData.hash,
+      transactionData.sourceState.hash,
+    );
+    const result = await this.client.submitTransaction(requestId, transactionData.hash, authenticator);
+
+    if (result.status !== SubmitCommitmentStatus.SUCCESS) {
+      throw new Error(`Could not submit transaction: ${result.status}`);
+    }
+
+    return new Commitment(requestId, transactionData, authenticator);
+  }
+
+  public async createTransaction<T extends TransactionData | MintTransactionData>(
+    { requestId, transactionData }: Commitment<T>,
+    inclusionProof: InclusionProof,
+  ): Promise<Transaction<T>> {
     const status = await inclusionProof.verify(requestId.toBigInt());
     if (status != InclusionProofVerificationStatus.OK) {
       throw new Error('Inclusion proof verification failed.');
@@ -180,30 +201,6 @@ export class StateTransitionClient {
     if (!inclusionProof.transactionHash.equals(transactionData.hash)) {
       throw new Error('Payload hash mismatch');
     }
-
-    const state = await TokenState.create(predicate, data);
-
-    return new Token(tokenId, tokenType, tokenData, state, [new Transaction(transactionData, inclusionProof)]);
-  }
-
-  public async createTransaction(
-    transactionData: TransactionData,
-    // TODO: Create methods for this signingService to be correctly built, based on what type of address is given
-    signingService: SigningService,
-  ): Promise<Transaction<TransactionData>> {
-    if (
-      HexConverter.encode(transactionData.sourceState.unlockPredicate.publicKey) !==
-      HexConverter.encode(signingService.publicKey)
-    ) {
-      throw new Error('Failed to unlock token');
-    }
-
-    const requestId = await RequestId.create(signingService.publicKey, transactionData.sourceState.hash);
-    const { inclusionProof } = await this.client.submitTransaction(
-      requestId,
-      transactionData.hash,
-      await Authenticator.create(signingService, transactionData.hash, transactionData.sourceState.hash),
-    );
 
     return new Transaction(transactionData, inclusionProof);
   }
@@ -242,5 +239,9 @@ export class StateTransitionClient {
     const inclusionProof = await this.client.getInclusionProof(requestId);
     // TODO: Check ownership?
     return inclusionProof.verify(requestId.toBigInt());
+  }
+
+  public getInclusionProof(commitment: Commitment<TransactionData | MintTransactionData>): Promise<InclusionProof> {
+    return this.client.getInclusionProof(commitment.requestId);
   }
 }

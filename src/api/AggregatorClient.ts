@@ -5,7 +5,7 @@ import { JsonRpcHttpTransport } from '@unicitylabs/commons/lib/json-rpc/JsonRpcH
 
 import { IAggregatorClient } from './IAggregatorClient.js';
 import { IAuthenticator } from './IAuthenticator.js';
-import { SubmitStateTransitionResponse } from './SubmitStateTransitionResponse.js';
+import { SubmitCommitmentResponse, SubmitCommitmentStatus } from './SubmitCommitmentResponse.js';
 
 export class AggregatorClient implements IAggregatorClient {
   private readonly transport: JsonRpcHttpTransport;
@@ -17,23 +17,24 @@ export class AggregatorClient implements IAggregatorClient {
     requestId: RequestId,
     transactionHash: DataHash,
     authenticator: IAuthenticator,
-  ): Promise<SubmitStateTransitionResponse> {
+  ): Promise<SubmitCommitmentResponse> {
     const data = {
       authenticator: authenticator.toDto(),
-      payload: transactionHash.toDto(),
-      requestId: requestId.toString(),
+      requestId: requestId.toDto(),
+      transactionHash: transactionHash.toDto(),
     };
 
-    return SubmitStateTransitionResponse.fromDto(await this.transport.request('aggregator_submit', data));
+    await this.transport.request('submit_commitment', data);
+    return new SubmitCommitmentResponse(SubmitCommitmentStatus.SUCCESS);
   }
 
   public async getInclusionProof(requestId: RequestId, blockNum?: bigint): Promise<InclusionProof> {
-    const data = { blockNum: blockNum?.toString(), requestId: requestId.toString() };
-    return InclusionProof.fromDto(await this.transport.request('aggregator_get_path', data));
+    const data = { blockNum: blockNum?.toString(), requestId: requestId.toDto() };
+    return InclusionProof.fromDto(await this.transport.request('get_inclusion_proof', data));
   }
 
-  public getNodelProof(requestId: RequestId): Promise<unknown> {
-    const data = { requestId: requestId.toString() };
-    return this.transport.request('aggregator_get_nodel', data);
+  public getNoDeletionProof(requestId: RequestId): Promise<unknown> {
+    const data = { requestId: requestId.toDto() };
+    return this.transport.request('get_no_deletion_proof', data);
   }
 }

@@ -43,7 +43,8 @@ export abstract class DefaultPredicate implements IPredicate {
 
   public static isDto(data: unknown): data is IPredicateDto {
     return (
-      data instanceof Object &&
+      typeof data === 'object' &&
+      data !== null &&
       'publicKey' in data &&
       typeof data.publicKey === 'string' &&
       'algorithm' in data &&
