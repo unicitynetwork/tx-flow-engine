@@ -87,7 +87,7 @@ export class StateTransitionClient {
         throw new Error('State data is not part of transaction.');
       }
 
-      if (!(await transaction.data.sourceState.unlockPredicate.verify(previousTransaction))) {
+      if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
         throw new Error('Predicate verification failed');
       }
 
@@ -133,8 +133,8 @@ export class StateTransitionClient {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: Uint8Array,
-    data: Uint8Array | null,
     salt: Uint8Array,
+    dataHash?: DataHash | null,
   ): Promise<Commitment<MintTransactionData>> {
     const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
@@ -148,7 +148,7 @@ export class StateTransitionClient {
       sourceState,
       recipient.toDto(),
       salt,
-      data ? await new DataHasher(HashAlgorithm.SHA256).update(data).digest() : null,
+      dataHash ?? null,
     );
 
     const authenticator = await Authenticator.create(signingService, transactionData.hash, sourceState.hash);

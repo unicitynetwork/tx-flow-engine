@@ -6,7 +6,7 @@ import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 
 export class PredicateFactory {
-  public static create(tokenId: TokenId, tokenType: TokenType, data: IPredicateDto): Promise<IPredicate> {
+  public create(tokenId: TokenId, tokenType: TokenType, data: IPredicateDto): Promise<IPredicate> {
     switch (data.type) {
       case PredicateType.MASKED:
         return MaskedPredicate.fromDto(tokenId, tokenType, data);
