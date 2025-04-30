@@ -7,7 +7,7 @@ import { SparseMerkleTree } from '@unicitylabs/commons/lib/smt/SparseMerkleTree.
 import { DirectAddress } from '../../src/address/DirectAddress.js';
 import { Commitment } from '../../src/Commitment.js';
 import { MaskedPredicate } from '../../src/predicate/MaskedPredicate.js';
-import { PredicateFactory } from '../../src/predicate/PredicateFactory';
+import { PredicateFactory } from '../../src/predicate/PredicateFactory.js';
 import { StateTransitionClient } from '../../src/StateTransitionClient.js';
 import { Token } from '../../src/token/Token.js';
 import { TokenId } from '../../src/token/TokenId.js';
@@ -122,10 +122,8 @@ describe('Transition', function () {
       [mintTransaction],
     );
 
-    const signingService = await SigningService.createFromSecret(secret, token.state.unlockPredicate.nonce);
-
-    // Recipient info
     const nonce = crypto.getRandomValues(new Uint8Array(32));
+    const signingService = await SigningService.createFromSecret(secret, nonce);
     const predicate = await MaskedPredicate.create(token.id, token.type, signingService, HashAlgorithm.SHA256, nonce);
     const recipient = await DirectAddress.create(predicate.reference.imprint);
 

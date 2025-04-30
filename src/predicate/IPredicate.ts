@@ -9,11 +9,11 @@ export interface IPredicateDto {
 }
 
 export interface IPredicate {
-  readonly publicKey: Uint8Array;
   readonly reference: DataHash;
   readonly hash: DataHash;
   readonly nonce: Uint8Array;
 
+  isOwner(publicKey: Uint8Array): Promise<boolean>;
   verify(transaction: Transaction<MintTransactionData | TransactionData>): Promise<boolean>;
   toDto(): IPredicateDto;
 }

@@ -95,4 +95,8 @@ export abstract class DefaultPredicate implements IPredicate {
             Nonce: ${HexConverter.encode(this.nonce)}
             Hash: ${this.hash.toString()}`;
   }
+
+  public isOwner(publicKey: Uint8Array): Promise<boolean> {
+    return Promise.resolve(HexConverter.encode(publicKey) === HexConverter.encode(this.publicKey));
+  }
 }

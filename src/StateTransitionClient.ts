@@ -166,7 +166,9 @@ export class StateTransitionClient {
     transactionData: TransactionData,
     signingService: SigningService,
   ): Promise<Commitment<TransactionData>> {
-    // TODO: Unlock token before submitting, tho user can do themselves.
+    if (await transactionData.sourceState.unlockPredicate.isOwner(signingService.publicKey)) {
+      throw new Error('Failed to unlock token');
+    }
 
     const requestId = await RequestId.create(signingService.publicKey, transactionData.sourceState.hash);
 
