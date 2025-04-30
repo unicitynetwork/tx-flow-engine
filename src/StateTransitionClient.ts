@@ -104,8 +104,9 @@ export class StateTransitionClient {
       throw new Error('State data is not part of transaction.');
     }
 
-    if (!(await state.unlockPredicate.verify(previousTransaction))) {
-      throw new Error('Predicate verification failed');
+    const expectedRecipient = await DirectAddress.create(state.unlockPredicate.reference.imprint);
+    if (expectedRecipient.toDto() !== previousTransaction.data.recipient) {
+      throw new Error('Recipient address mismatch');
     }
 
     return new Token(tokenId, tokenType, tokenData, state, transactions);
@@ -166,7 +167,7 @@ export class StateTransitionClient {
     transactionData: TransactionData,
     signingService: SigningService,
   ): Promise<Commitment<TransactionData>> {
-    if (await transactionData.sourceState.unlockPredicate.isOwner(signingService.publicKey)) {
+    if (!(await transactionData.sourceState.unlockPredicate.isOwner(signingService.publicKey))) {
       throw new Error('Failed to unlock token');
     }
 
@@ -213,8 +214,8 @@ export class StateTransitionClient {
     transaction: Transaction<TransactionData>,
     nametagTokens: Token[] = [],
   ): Promise<Token> {
-    if (!(await state.unlockPredicate.verify(transaction))) {
-      throw new Error('Unlock predicate verification failed');
+    if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
+      throw new Error('Predicate verification failed');
     }
 
     // TODO: Move address processing to a separate method
