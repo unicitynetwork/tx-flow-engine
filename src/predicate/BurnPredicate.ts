@@ -35,18 +35,10 @@ export class BurnPredicate implements IPredicate {
     return new BurnPredicate(reference);
   }
 
-  public static async fromDto(tokenId: TokenId, tokenType: TokenType, data: unknown): Promise<BurnPredicate> {
-    if (!BurnPredicate.isDto(data)) {
-      throw new Error('Invalid one time address predicate dto');
-    }
-
+  public static async fromDto(tokenId: TokenId, tokenType: TokenType): Promise<BurnPredicate> {
     const reference = await BurnPredicate.calculateReference(tokenId, tokenType);
 
     return new BurnPredicate(reference);
-  }
-
-  public static isDto(data: unknown): data is IPredicateDto {
-    return typeof data === 'object' && data !== null && 'nonce' in data && typeof data.nonce === 'string';
   }
 
   private static calculateReference(tokenId: TokenId, tokenType: TokenType): Promise<DataHash> {
