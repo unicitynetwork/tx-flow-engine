@@ -5,6 +5,7 @@ import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
+import { ITokenData } from '../token/ITokenData.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 
@@ -32,13 +33,13 @@ export class MintTransactionData {
   public static async create(
     tokenId: TokenId,
     tokenType: TokenType,
-    tokenData: Uint8Array,
+    tokenData: ITokenData,
     sourceState: RequestId,
     recipient: string,
     salt: Uint8Array,
     dataHash: DataHash | null,
   ): Promise<MintTransactionData> {
-    const tokenDataHash = await new DataHasher(HashAlgorithm.SHA256).update(tokenData).digest();
+    const tokenDataHash = await new DataHasher(HashAlgorithm.SHA256).update(tokenData.encode()).digest();
     return new MintTransactionData(
       await new DataHasher(HashAlgorithm.SHA256)
         .update(tokenId.encode())

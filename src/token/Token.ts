@@ -1,6 +1,8 @@
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
+import { ITokenData } from './ITokenData.js';
+import { NameTagTokenData } from './NameTagTokenData.js';
 import { TokenId } from './TokenId.js';
 import { ITokenStateDto, TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
@@ -17,25 +19,20 @@ export interface ITokenDto {
   readonly nametagTokens: ITokenDto[];
 }
 
-export class Token {
+export class Token<T extends ITokenData> {
   public constructor(
     public readonly id: TokenId,
     public readonly type: TokenType,
-    public readonly _data: Uint8Array,
+    public readonly data: T,
     public readonly state: TokenState,
     private readonly _transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
-    private readonly _nametagTokens: Token[] = [],
+    private readonly _nametagTokens: Token<NameTagTokenData>[] = [],
   ) {
-    this._data = new Uint8Array(_data);
     this._nametagTokens = [..._nametagTokens];
     this._transactions = [..._transactions];
   }
 
-  public get data(): Uint8Array {
-    return new Uint8Array(this._data);
-  }
-
-  public get nametagTokens(): Token[] {
+  public get nametagTokens(): Token<NameTagTokenData>[] {
     return [...this._nametagTokens];
   }
 
@@ -45,7 +42,7 @@ export class Token {
 
   public toDto(): ITokenDto {
     return {
-      data: HexConverter.encode(this._data),
+      data: HexConverter.encode(this.data.encode()),
       id: this.id.toDto(),
       nametagTokens: this.nametagTokens.map((token) => token.toDto()),
       state: this.state.toDto(),
@@ -62,8 +59,10 @@ export class Token {
         Token:
           Id: ${this.id.toString()}
           Type: ${this.type.toString()}
-          Data: ${HexConverter.encode(this._data)}
-          ${this.state.toString()}
+          Data: 
+            ${this.data.toString()}
+          State:
+            ${this.state.toString()}
           Transactions: [
             ${this.transactions.map((transition) => transition.toString()).join('\n')}
           ]

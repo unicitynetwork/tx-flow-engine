@@ -13,6 +13,8 @@ import { IAggregatorClient } from './api/IAggregatorClient.js';
 import { SubmitCommitmentStatus } from './api/SubmitCommitmentResponse.js';
 import { Commitment } from './Commitment.js';
 import { IPredicateFactory } from './predicate/IPredicateFactory.js';
+import { ITokenData } from './token/ITokenData.js';
+import { NameTagTokenData } from './token/NameTagTokenData.js';
 import { ITokenDto, Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
 import { TokenState } from './token/TokenState.js';
@@ -29,10 +31,14 @@ const MINTER_SECRET = HexConverter.decode('495f414d5f554e4956455253414c5f4d494e5
 export class StateTransitionClient {
   public constructor(private readonly client: IAggregatorClient) {}
 
-  public static async importToken(tokenDto: ITokenDto, predicateFactory: IPredicateFactory): Promise<Token> {
+  public static async importToken<T extends ITokenData>(
+    tokenDto: ITokenDto,
+    tokenDataFactory: { decode: (data: Uint8Array) => T },
+    predicateFactory: IPredicateFactory,
+  ): Promise<Token<T>> {
     const tokenId = TokenId.create(HexConverter.decode(tokenDto.id));
     const tokenType = TokenType.create(HexConverter.decode(tokenDto.type));
-    const tokenData = HexConverter.decode(tokenDto.data);
+    const tokenData = tokenDataFactory.decode(HexConverter.decode(tokenDto.data));
 
     const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
@@ -70,7 +76,7 @@ export class StateTransitionClient {
           HexConverter.decode(data.salt),
           data.dataHash ? DataHash.fromDto(data.dataHash) : null,
           data.message ? HexConverter.decode(data.message) : null,
-          await Promise.all(data.nameTags.map((input) => this.importToken(input, predicateFactory))),
+          await Promise.all(data.nameTags.map((input) => this.importToken(input, NameTagTokenData, predicateFactory))),
         ),
         InclusionProof.fromDto(inclusionProof),
       );
@@ -133,7 +139,7 @@ export class StateTransitionClient {
     recipient: IAddress,
     tokenId: TokenId,
     tokenType: TokenType,
-    tokenData: Uint8Array,
+    tokenData: ITokenData,
     salt: Uint8Array,
     dataHash?: DataHash | null,
   ): Promise<Commitment<MintTransactionData>> {
@@ -208,12 +214,12 @@ export class StateTransitionClient {
     return new Transaction(transactionData, inclusionProof);
   }
 
-  public async finishTransaction(
-    token: Token,
+  public async finishTransaction<T extends ITokenData>(
+    token: Token<T>,
     state: TokenState,
     transaction: Transaction<TransactionData>,
-    nametagTokens: Token[] = [],
-  ): Promise<Token> {
+    nametagTokens: Token<NameTagTokenData>[] = [],
+  ): Promise<Token<T>> {
     if (!(await transaction.data.sourceState.unlockPredicate.verify(transaction))) {
       throw new Error('Predicate verification failed');
     }
@@ -237,7 +243,10 @@ export class StateTransitionClient {
     return new Token(token.id, token.type, token.data, state, transactions, nametagTokens);
   }
 
-  public async getTokenStatus(token: Token, publicKey: Uint8Array): Promise<InclusionProofVerificationStatus> {
+  public async getTokenStatus(
+    token: Token<ITokenData>,
+    publicKey: Uint8Array,
+  ): Promise<InclusionProofVerificationStatus> {
     const requestId = await RequestId.create(publicKey, token.state.hash);
     const inclusionProof = await this.client.getInclusionProof(requestId);
     // TODO: Check ownership?
