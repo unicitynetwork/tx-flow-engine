@@ -31,14 +31,20 @@ const MINTER_SECRET = HexConverter.decode('495f414d5f554e4956455253414c5f4d494e5
 export class StateTransitionClient {
   public constructor(private readonly client: IAggregatorClient) {}
 
+  /**
+   * Imports a token from the given DTO.
+   * @param tokenDto The token DTO to import.
+   * @param tokenDataFactory The factory to decode the token data.
+   * @param predicateFactory The factory to create predicates.
+   */
   public static async importToken<T extends ITokenData>(
     tokenDto: ITokenDto,
-    tokenDataFactory: { decode: (data: Uint8Array) => T },
+    tokenDataFactory: { decode: (data: Uint8Array) => Promise<T> },
     predicateFactory: IPredicateFactory,
   ): Promise<Token<T>> {
     const tokenId = TokenId.create(HexConverter.decode(tokenDto.id));
     const tokenType = TokenType.create(HexConverter.decode(tokenDto.type));
-    const tokenData = tokenDataFactory.decode(HexConverter.decode(tokenDto.data));
+    const tokenData = await tokenDataFactory.decode(HexConverter.decode(tokenDto.data));
 
     const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
@@ -52,6 +58,7 @@ export class StateTransitionClient {
         tokenDto.transactions[0].data.recipient,
         HexConverter.decode(tokenDto.transactions[0].data.salt),
         tokenDto.transactions[0].data.dataHash ? DataHash.fromDto(tokenDto.transactions[0].data.dataHash) : null,
+        tokenDto.transactions[0].data.reason ? HexConverter.decode(tokenDto.transactions[0].data.reason) : null,
       ),
       InclusionProof.fromDto(tokenDto.transactions[0].inclusionProof),
     );
@@ -142,6 +149,7 @@ export class StateTransitionClient {
     tokenData: ITokenData,
     salt: Uint8Array,
     dataHash?: DataHash | null,
+    reason?: Uint8Array | null,
   ): Promise<Commitment<MintTransactionData>> {
     const sourceState = await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX);
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
@@ -156,6 +164,7 @@ export class StateTransitionClient {
       recipient.toDto(),
       salt,
       dataHash ?? null,
+      reason ?? null,
     );
 
     const authenticator = await Authenticator.create(signingService, transactionData.hash, sourceState.hash);

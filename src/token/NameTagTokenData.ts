@@ -1,8 +1,8 @@
 import { ITokenData } from './ITokenData.js';
 
 export class NameTagTokenData implements ITokenData {
-  public static decode(): NameTagTokenData {
-    return new NameTagTokenData();
+  public static decode(): Promise<NameTagTokenData> {
+    return Promise.resolve(new NameTagTokenData());
   }
 
   public encode(): Uint8Array {
