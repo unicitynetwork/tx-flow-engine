@@ -1,7 +1,8 @@
+import { CborDecoder } from '@unicitylabs/commons/lib/cbor/CborDecoder.js';
 import { CborEncoder } from '@unicitylabs/commons/lib/cbor/CborEncoder.js';
+import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { ISerializable } from '../../ISerializable.js';
-import { CborDecoder } from '@unicitylabs/commons/lib/cbor/CborDecoder.js';
 
 export class FungibleTokenData implements ISerializable {
   public constructor(private readonly _coins: Map<string, bigint>) {
@@ -29,5 +30,13 @@ export class FungibleTokenData implements ISerializable {
         CborEncoder.encodeArray([CborEncoder.encodeTextString(key), CborEncoder.encodeUnsignedInteger(value)]),
       ),
     );
+  }
+
+  public toString(): string {
+    return dedent`
+      FungibleTokenData
+        ${Array.from(this._coins.entries())
+          .map(([key, value]) => `${key}: ${value}`)
+          .join('\n')}`;
   }
 }
