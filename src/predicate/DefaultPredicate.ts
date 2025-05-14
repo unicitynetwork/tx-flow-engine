@@ -7,6 +7,7 @@ import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
+import { ISerializable } from '../ISerializable.js';
 import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { Transaction } from '../transaction/Transaction.js';
 import { TransactionData } from '../transaction/TransactionData.js';
@@ -66,7 +67,9 @@ export abstract class DefaultPredicate implements IPredicate {
     };
   }
 
-  public async verify(transaction: Transaction<TransactionData | MintTransactionData>): Promise<boolean> {
+  public async verify(
+    transaction: Transaction<MintTransactionData<ISerializable> | TransactionData>,
+  ): Promise<boolean> {
     // Verify if input state and public key are correct.
     if (
       HexConverter.encode(transaction.inclusionProof.authenticator.publicKey) !== HexConverter.encode(this.publicKey) ||

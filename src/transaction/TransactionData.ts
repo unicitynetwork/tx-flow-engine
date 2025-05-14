@@ -4,8 +4,8 @@ import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
-import { NameTagTokenData } from '../token/NameTagTokenData.js';
-import { ITokenDto, Token } from '../token/Token.js';
+import { NameTagToken } from '../token/NameTagToken.js';
+import { ITokenDto } from '../token/Token.js';
 import { ITokenStateDto, TokenState } from '../token/TokenState.js';
 
 export interface ITransactionDataDto {
@@ -27,7 +27,7 @@ export class TransactionData {
     public readonly salt: Uint8Array,
     public readonly dataHash: DataHash | null,
     private readonly _message: Uint8Array | null,
-    private readonly nameTags: Token<NameTagTokenData>[] = [],
+    private readonly nameTags: NameTagToken[] = [],
   ) {
     this._message = _message ? new Uint8Array(_message) : null;
     this.nameTags = Array.from(nameTags);
@@ -47,7 +47,7 @@ export class TransactionData {
     salt: Uint8Array,
     dataHash: DataHash | null,
     message: Uint8Array | null,
-    nameTags: Token<NameTagTokenData>[] = [],
+    nameTags: NameTagToken[] = [],
   ): Promise<TransactionData> {
     return new TransactionData(
       await new DataHasher(HashAlgorithm.SHA256)

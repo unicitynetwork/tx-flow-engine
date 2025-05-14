@@ -1,42 +1,42 @@
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
-import { ITokenData } from './ITokenData.js';
-import { NameTagTokenData } from './NameTagTokenData.js';
 import { TokenId } from './TokenId.js';
 import { ITokenStateDto, TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
-import { MintTransactionData } from '../transaction/MintTransactionData.js';
+import { ISerializable } from '../ISerializable.js';
+import { NameTagToken } from './NameTagToken.js';
+import { IMintTransactionDataDto, MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
-import { TransactionData } from '../transaction/TransactionData.js';
+import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
 
 export interface ITokenDto {
   readonly id: string;
   readonly type: string;
   readonly data: string;
   readonly state: ITokenStateDto;
-  readonly transactions: [ITransactionDto<MintTransactionData>, ...ITransactionDto<TransactionData>[]];
+  readonly transactions: [ITransactionDto<IMintTransactionDataDto>, ...ITransactionDto<ITransactionDataDto>[]];
   readonly nametagTokens: ITokenDto[];
 }
 
-export class Token<T extends ITokenData> {
+export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISerializable | null>> {
   public constructor(
     public readonly id: TokenId,
     public readonly type: TokenType,
-    public readonly data: T,
+    public readonly data: TD,
     public readonly state: TokenState,
-    private readonly _transactions: [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]],
-    private readonly _nametagTokens: Token<NameTagTokenData>[] = [],
+    private readonly _transactions: [Transaction<MTD>, ...Transaction<TransactionData>[]],
+    private readonly _nametagTokens: NameTagToken[] = [],
   ) {
     this._nametagTokens = [..._nametagTokens];
     this._transactions = [..._transactions];
   }
 
-  public get nametagTokens(): Token<NameTagTokenData>[] {
+  public get nametagTokens(): NameTagToken[] {
     return [...this._nametagTokens];
   }
 
-  public get transactions(): [Transaction<MintTransactionData>, ...Transaction<TransactionData>[]] {
+  public get transactions(): [Transaction<MTD>, ...Transaction<TransactionData>[]] {
     return [...this._transactions];
   }
 
@@ -47,8 +47,8 @@ export class Token<T extends ITokenData> {
       nametagTokens: this.nametagTokens.map((token) => token.toDto()),
       state: this.state.toDto(),
       transactions: this.transactions.map((transaction) => transaction.toDto()) as [
-        ITransactionDto<MintTransactionData>,
-        ...ITransactionDto<TransactionData>[],
+        ITransactionDto<IMintTransactionDataDto>,
+        ...ITransactionDto<ITransactionDataDto>[],
       ],
       type: this.type.toDto(),
     };
