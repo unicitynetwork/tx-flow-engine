@@ -12,6 +12,7 @@ import { MaskedPredicate } from '../../src/predicate/MaskedPredicate.js';
 import { PredicateFactory } from '../../src/predicate/PredicateFactory.js';
 import { UnmaskedPredicate } from '../../src/predicate/UnmaskedPredicate.js';
 import { StateTransitionClient } from '../../src/StateTransitionClient.js';
+import { FungibleTokenMintTransactionFactory } from '../../src/token/fungible/FungibleTokenMintTransactionFactory.js';
 import { Token } from '../../src/token/Token.js';
 import { TokenFactory } from '../../src/token/TokenFactory.js';
 import { TokenId } from '../../src/token/TokenId.js';
@@ -240,7 +241,7 @@ class TestTokenData implements ISerializable {
 
 class TestTokenFactory extends TokenFactory<TestTokenData> {
   public constructor() {
-    super(new PredicateFactory());
+    super(new FungibleTokenMintTransactionFactory(), new PredicateFactory());
   }
 
   protected createData(data: Uint8Array): Promise<TestTokenData> {

@@ -7,24 +7,34 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { DirectAddress } from '../address/DirectAddress.js';
 import { ISerializable } from '../ISerializable.js';
 import { MINT_SUFFIX, MINTER_SECRET } from '../StateTransitionClient.js';
+import { FungibleTokenMintTransactionFactory } from './fungible/FungibleTokenMintTransactionFactory.js';
 import { ITokenDto, Token } from './Token.js';
 import { TokenId } from './TokenId.js';
 import { TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
 import { IPredicateFactory } from '../predicate/IPredicateFactory.js';
-import { IMintTransactionDataDto, MintTransactionData } from '../transaction/MintTransactionData.js';
+import { MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
 
 export abstract class TokenFactory<TD extends ISerializable> {
-  public constructor(private readonly predicateFactory: IPredicateFactory) {}
+  public constructor(
+    private readonly mintTransactionFactory: FungibleTokenMintTransactionFactory,
+    private readonly predicateFactory: IPredicateFactory,
+  ) {}
 
   public async create(data: ITokenDto): Promise<Token<TD, MintTransactionData<ISerializable | null>>> {
     const tokenId = TokenId.create(HexConverter.decode(data.id));
     const tokenType = TokenType.create(HexConverter.decode(data.type));
     const tokenData = await this.createData(HexConverter.decode(data.data));
 
-    const mintTransaction = await this.createMintTransaction(tokenId, tokenType, tokenData, data.transactions[0]);
+    const mintTransaction = await this.mintTransactionFactory.create(
+      tokenId,
+      tokenType,
+      tokenData,
+      await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX),
+      data.transactions[0],
+    );
 
     const signingService = await SigningService.createFromSecret(MINTER_SECRET, tokenId.encode());
 
@@ -79,28 +89,6 @@ export abstract class TokenFactory<TD extends ISerializable> {
     }
 
     return new Token(tokenId, tokenType, tokenData, state, transactions);
-  }
-
-  public async createMintTransaction(
-    tokenId: TokenId,
-    tokenType: TokenType,
-    tokenData: TD,
-    transaction: ITransactionDto<IMintTransactionDataDto>,
-  ): Promise<Transaction<MintTransactionData<ISerializable | null>>> {
-    return new Transaction(
-      await MintTransactionData.create(
-        tokenId,
-        tokenType,
-        tokenData,
-        await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX),
-        transaction.data.recipient,
-        HexConverter.decode(transaction.data.salt),
-        transaction.data.dataHash ? DataHash.fromDto(transaction.data.dataHash) : null,
-        // TODO: Parse reason properly
-        transaction.data.reason ? await this.createMintReason(HexConverter.decode(transaction.data.reason)) : null,
-      ),
-      InclusionProof.fromDto(transaction.inclusionProof),
-    );
   }
 
   private async createTransaction(
