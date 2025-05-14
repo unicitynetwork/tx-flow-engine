@@ -113,6 +113,4 @@ export abstract class TokenFactory<TD extends ISerializable> {
   }
 
   protected abstract createData(data: Uint8Array): Promise<TD>;
-
-  protected abstract createMintReason(data: Uint8Array): Promise<ISerializable | null>;
 }
