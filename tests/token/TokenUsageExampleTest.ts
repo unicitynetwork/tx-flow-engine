@@ -11,6 +11,7 @@ import { UnmaskedPredicate } from '../../src/predicate/UnmaskedPredicate.js';
 import { StateTransitionClient } from '../../src/StateTransitionClient.js';
 import { FungibleTokenData } from '../../src/token/fungible/FungibleTokenData.js';
 import { FungibleTokenFactory } from '../../src/token/fungible/FungibleTokenFactory.js';
+import { FungibleTokenId } from '../../src/token/fungible/FungibleTokenId.js';
 import { Token } from '../../src/token/Token.js';
 import { TokenId } from '../../src/token/TokenId.js';
 import { TokenState } from '../../src/token/TokenState.js';
@@ -72,12 +73,11 @@ function waitInclusionProof(
 async function createMintTokenData(secret: Uint8Array): Promise<IMintTokenData> {
   const tokenId = TokenId.create(crypto.getRandomValues(new Uint8Array(32)));
   const tokenType = TokenType.create(crypto.getRandomValues(new Uint8Array(32)));
-  const tokenData = new FungibleTokenData(
-    new Map<string, bigint>([
-      ['eek', 500n],
-      ['eur', 10n],
-    ]),
-  );
+
+  const tokenData = new FungibleTokenData([
+    [new FungibleTokenId(textEncoder.encode('eek')), 500n],
+    [new FungibleTokenId(textEncoder.encode('eur')), 10n],
+  ]);
   const data = crypto.getRandomValues(new Uint8Array(32));
 
   const salt = crypto.getRandomValues(new Uint8Array(32));
@@ -146,16 +146,7 @@ describe('Transition', function () {
       token.state,
       recipient.toDto(),
       crypto.getRandomValues(new Uint8Array(32)),
-      await new DataHasher(HashAlgorithm.SHA256)
-        .update(
-          new FungibleTokenData(
-            new Map<string, bigint>([
-              ['eur', 2n],
-              ['usd', 1n],
-            ]),
-          ).encode(),
-        )
-        .digest(),
+      await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode('my custom data')).digest(),
       textEncoder.encode('my message'),
       token.nametagTokens,
     );
@@ -168,15 +159,7 @@ describe('Transition', function () {
 
     const updateToken = await client.finishTransaction(
       token,
-      await TokenState.create(
-        recipientPredicate,
-        new FungibleTokenData(
-          new Map<string, bigint>([
-            ['eur', 2n],
-            ['usd', 1n],
-          ]),
-        ).encode(),
-      ),
+      await TokenState.create(recipientPredicate, textEncoder.encode('my custom data')),
       transaction,
     );
 
@@ -191,7 +174,7 @@ describe('Transition', function () {
 
     let token = await new FungibleTokenFactory().create(
       JSON.parse(
-        '{"data":"82826365656b1901f482636575720a","id":"2e430cbd088916dc62bc57e65c92ab6f73731c33dfbff053fcfa50a5196787a2","nametagTokens":[],"state":{"data":"82826365757202826375736401","unlockPredicate":{"algorithm":"secp256k1","hashAlgorithm":0,"nonce":"5df1b670322c0f10a49c554087596bfd3cd59a86de00814efc3c905765de67eb","publicKey":"0263e4987fd504f1a073209c6cf30d37172e2bfc7d81d58a9e92a3173973b68f62","type":"MASKED"}},"transactions":[{"data":{"dataHash":"00006554f2a75cced6c49d2ad5367dd732f95ab9d818d6d59c34b5b953fd40882689","reason":null,"recipient":"DIRECT://00004f986431e159e95ecce6f2fe252f80211fe0d773956f012fc15b6c7d23936e95f12c4605","salt":"bc08b2cd11525c9c551b60648728fffe16169214eb35db9e82d5acecd6c190cf"},"inclusionProof":{"authenticator":{"algorithm":"secp256k1","publicKey":"034567b537ba9acb38437eaefffc5797c95edc0b95b5132e38d703a10ae5c93c6d","signature":"130eaead92954ba6b1ba86d2d0c0727941a3d955b2d2b412d6d36c1b424249a8122f101ad465879f765572bfcf9975ce03a129b17065b25c88a7068e6380f8a300","stateHash":"0000965ece5854258568ae320e7576485504e31b2c28d58f8d1fe425b81f9c0fb0f6"},"merkleTreePath":{"root":"00000fb023d49193eefa788f0544381c8a2e9daa33d4b786a4c5033d5f27e7639016","steps":[{"path":"7588629868121842173021423316218956952243178822756349597740422075004907794745651124","value":"00006a9cd1d2b2ab2a1908aae651bdb7a304264d282c8f0ec7b3eed22f89b9b9f90a"}]},"transactionHash":"0000102ed54cd4af9027bc76d047f48c817707699b00cd723de76c2e98f41e8ec4c1"}},{"data":{"dataHash":"0000c9a28a652cbed2dd15103ddc6d085b14a6ba04da769ffccc85bc4d0266cb88ae","message":"6d79206d657373616765","nameTags":[],"recipient":"DIRECT://00007e633cabd0db0a3be95d224f60e89014e55407224b82d1ea5203d622a8540c9f27272ee2","salt":"706cf426e2d9ac2f656a36d901b74b154ab7d9061a4c2a986cc936e99b854f30","sourceState":{"data":"1aafe4447b441db409dfcb5e7a029f9a5af47ec35938b67b221d4a6de5774b76","unlockPredicate":{"algorithm":"secp256k1","hashAlgorithm":0,"nonce":"2db0fc521dbf74ce7a31ef44b8c8b1a625712fa8cee251514138a590de431c6f","publicKey":"039ffe440a0bfb66aff0155e34e39bc92633169371214a75b08015af76903cdeaa","type":"MASKED"}}},"inclusionProof":{"authenticator":{"algorithm":"secp256k1","publicKey":"039ffe440a0bfb66aff0155e34e39bc92633169371214a75b08015af76903cdeaa","signature":"99e9b79c131f3e58fcf82d134aabe6e0e27d33457786c8593ff96c60c77217b739ea0f547feb643ef9ac6f8f7605b74736be848c79aaa6e216dcabd764a463c900","stateHash":"000056d43c38e2517ed727d550dd68da8853d3206716a4685b1e1ca33deca98b89cc"},"merkleTreePath":{"root":"00005dc97e7fef9ab3299e9a2a0c6f8da1ba044a5d296a34c1a3c392ae052197cdd2","steps":[{"path":"7588623464028811210861142444893060754642789550412092213324948429399910310300249525","sibling":"000082907c36cff88d3d129a0ec1e3f4c85cd25926e54eeeb8883644952c5e438899","value":"00009c4a72e98ddeb32e9641c51018400f19a351c131cce8af980972716b2ba4ac38"}]},"transactionHash":"000002085bddf395cc72b8720319bbaae82b8a73d183888fe88fcb4d5f96dda4f100"}}],"type":"4eaed499952d227ef00b1fb14cb5293c498c2876c17709a8648cdb0f33739d80"}',
+        '{"data":"8282663635363536621901f482663635373537320a","id":"3e535b3d35f8e2b6b3915f54854d35e499df6b19df89f0b9e580163bbf43ef80","nametagTokens":[],"state":{"data":"6d7920637573746f6d2064617461","unlockPredicate":{"algorithm":"secp256k1","hashAlgorithm":0,"nonce":"c1075fe0e7e1ae54eafbb7614e122c64185fba2571f24954630ea8ab57bd008b","publicKey":"02dac8c79b8135d1261e5a450fcfff18222e52b302a9bfef82d68caaac070b8f5a","type":"MASKED"}},"transactions":[{"data":{"dataHash":"00000c033492589eea554e56c11088d60ff158d0d2077e61c829cf3271132a872f86","reason":null,"recipient":"DIRECT://0000a43fd1d32c16c29a12024d22c9af938187fd14b53f42367891ee86b7f15c38f2f72da9ac","salt":"d0838ae829b4ede1a285e7be57029e042881bb38885915f6f3b20d5247ad2a0e"},"inclusionProof":{"authenticator":{"algorithm":"secp256k1","publicKey":"025f8a8673332779692d6868b72763a322a9a9c681d6438e2f39cd96bed6a934ee","signature":"31aab6b9e7b1c3578a49fbeaad21077a7e339018522cc3ba188d345884da40eb52ce13bdcd55df1e66439a146dc1bea1fe1b1c010d0f22b69b39c695379fe68601","stateHash":"00001028ad32b65ef27ed14026145b184cd9c8376705e70703b0648e2f1aec7d2f9b"},"merkleTreePath":{"root":"0000d454dfa3c47091ff11f9eaae46463a98ff2c08adaa76c3ee004ba7897fbb0da1","steps":[{"path":"7588584527235268953552198145401369955789677562524053959012616983331757203180781280","value":"0000b4b946fe3a78605b91c491fafd95bee4286fb0cc4f00b997946e53df7b24547f"}]},"transactionHash":"0000e7fa738ffde67706f19e732bd62a2b782e8293776fc4561628658aef4204e4f3"}},{"data":{"dataHash":"0000371dd350eb385a9eb4ccf52c532b9f2fb5b24834ea634f4c27739b604cb08102","message":"6d79206d657373616765","nameTags":[],"recipient":"DIRECT://000000ace5c7d7e7ce05d7a38f15bc1db25a0f23ee6356d6a48f1e44c0fcedbb51d5e6468e2b","salt":"aeb5f407247c4dc9c236938e3deb56097e09a23051ce3c7c338596395b7e5576","sourceState":{"data":"be9c31ca6c33414bf991f756084ea75f15f016d1fc492208e841d8dd5b852a2c","unlockPredicate":{"algorithm":"secp256k1","hashAlgorithm":0,"nonce":"35f552bb768c3391c4ba23fa96889366a53382f1bab1bd753461b9bf6058b991","publicKey":"03f80db014d0cc3523e8e0d9a72cc8dd46512387487d371daa655ae6db376e3a4a","type":"MASKED"}}},"inclusionProof":{"authenticator":{"algorithm":"secp256k1","publicKey":"03f80db014d0cc3523e8e0d9a72cc8dd46512387487d371daa655ae6db376e3a4a","signature":"ee04fbefb1ffffbd139ec35334c97210a97f9c661c61298e9fe696d63d0b575a535136f67844b8cc08721190a4eb558c21c192512a5610ff10bf8368b0b5185900","stateHash":"0000d6ce3758dfd7bb456fd1285a6babd8f17d0a95d1e12ad0c2ba7a837e6acd6055"},"merkleTreePath":{"root":"00004a919a1fe38d9e9d5652c5154fb84f29c8e53c0ec07160c9879e2d4031cbb9b8","steps":[{"path":"7588626314569424892417130597639163719348160026245989349703529968076829853881889989","sibling":"000065a7865bd26afa85fd48e54e775cdc4ed300318671347dfa838c1dbbc9b4a593","value":"00009546768189cf90c4cc5eed6be5945a3bd541f4f9d53f95b6aeb513d9af868186"}]},"transactionHash":"0000692198efd7ea16d60253c3f389cfb416f8abbfe0d9ae360a5d1d84f0ec5c33e4"}}],"type":"08215236af953d81fc57b7ac0c7bcbc6d2103e580f7783b5bfb50cc61059dff1","version":"2.0"}',
       ),
     );
 
@@ -209,9 +192,7 @@ describe('Transition', function () {
       token.state,
       recipient.toDto(),
       crypto.getRandomValues(new Uint8Array(32)),
-      await new DataHasher(HashAlgorithm.SHA256)
-        .update(new FungibleTokenData(new Map([['eur', 50n]])).encode())
-        .digest(),
+      await new DataHasher(HashAlgorithm.SHA256).update(textEncoder.encode('new custom data')).digest(),
       textEncoder.encode('sending via public address'),
       token.nametagTokens,
     );
@@ -225,7 +206,7 @@ describe('Transition', function () {
 
     token = await client.finishTransaction(
       token,
-      await TokenState.create(recipientPredicate, new FungibleTokenData(new Map([['eur', 50n]])).encode()),
+      await TokenState.create(recipientPredicate, textEncoder.encode('new custom data')),
       transaction,
     );
 

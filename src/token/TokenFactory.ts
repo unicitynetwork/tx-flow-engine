@@ -8,7 +8,7 @@ import { DirectAddress } from '../address/DirectAddress.js';
 import { ISerializable } from '../ISerializable.js';
 import { MINT_SUFFIX, MINTER_SECRET } from '../StateTransitionClient.js';
 import { FungibleTokenMintTransactionFactory } from './fungible/FungibleTokenMintTransactionFactory.js';
-import { ITokenDto, Token } from './Token.js';
+import { ITokenDto, Token, TOKEN_VERSION } from './Token.js';
 import { TokenId } from './TokenId.js';
 import { TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
@@ -24,6 +24,11 @@ export abstract class TokenFactory<TD extends ISerializable> {
   ) {}
 
   public async create(data: ITokenDto): Promise<Token<TD, MintTransactionData<ISerializable | null>>> {
+    const tokenVersion = data.version;
+    if (tokenVersion !== TOKEN_VERSION) {
+      throw new Error('Cannot parse token. Version mismatch.');
+    }
+
     const tokenId = TokenId.create(HexConverter.decode(data.id));
     const tokenType = TokenType.create(HexConverter.decode(data.type));
     const tokenData = await this.createData(HexConverter.decode(data.data));
@@ -88,7 +93,8 @@ export abstract class TokenFactory<TD extends ISerializable> {
       throw new Error('Recipient address mismatch');
     }
 
-    return new Token(tokenId, tokenType, tokenData, state, transactions);
+    // TODO: Add nametag tokens
+    return new Token(tokenId, tokenType, tokenData, state, transactions, [], tokenVersion);
   }
 
   private async createTransaction(

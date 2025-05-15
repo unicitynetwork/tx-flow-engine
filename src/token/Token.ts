@@ -10,7 +10,10 @@ import { IMintTransactionDataDto, MintTransactionData } from '../transaction/Min
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
 
+export const TOKEN_VERSION = '2.0';
+
 export interface ITokenDto {
+  readonly version: string;
   readonly id: string;
   readonly type: string;
   readonly data: string;
@@ -27,6 +30,7 @@ export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISe
     public readonly state: TokenState,
     private readonly _transactions: [Transaction<MTD>, ...Transaction<TransactionData>[]],
     private readonly _nametagTokens: NameTagToken[] = [],
+    public readonly version: string = TOKEN_VERSION,
   ) {
     this._nametagTokens = [..._nametagTokens];
     this._transactions = [..._transactions];
@@ -51,12 +55,13 @@ export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISe
         ...ITransactionDto<ITransactionDataDto>[],
       ],
       type: this.type.toDto(),
+      version: this.version,
     };
   }
 
   public toString(): string {
     return dedent`
-        Token:
+        Token[${this.version}]:
           Id: ${this.id.toString()}
           Type: ${this.type.toString()}
           Data: 
