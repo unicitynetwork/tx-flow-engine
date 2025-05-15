@@ -1,6 +1,6 @@
-import { ITokenData } from './ITokenData.js';
+import { ISerializable } from '../ISerializable.js';
 
-export class NameTagTokenData implements ITokenData {
+export class NameTagTokenData implements ISerializable {
   public static decode(): Promise<NameTagTokenData> {
     return Promise.resolve(new NameTagTokenData());
   }

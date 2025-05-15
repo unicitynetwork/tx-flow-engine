@@ -1,30 +1,42 @@
 import type { IInclusionProofDto } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
+import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { IMintTransactionDataDto, MintTransactionData } from './MintTransactionData.js';
 import { ITransactionDataDto, TransactionData } from './TransactionData.js';
+import { ISerializable } from '../ISerializable.js';
 
-type TransactionDataDtoType<T extends TransactionData | MintTransactionData> = T extends TransactionData
-  ? ITransactionDataDto
-  : IMintTransactionDataDto;
-
-export interface ITransactionDto<T extends TransactionData | MintTransactionData> {
-  readonly data: TransactionDataDtoType<T>;
+export interface ITransactionDto<T extends ITransactionDataDto | IMintTransactionDataDto> {
+  readonly data: T;
   readonly inclusionProof: IInclusionProofDto;
 }
 
-export class Transaction<T extends TransactionData | MintTransactionData> {
+export class Transaction<T extends TransactionData | MintTransactionData<ISerializable | null>> {
   public constructor(
     public readonly data: T,
     public readonly inclusionProof: InclusionProof,
   ) {}
 
-  public toDto(): ITransactionDto<T> {
+  public toDto(): ITransactionDto<ITransactionDataDto | IMintTransactionDataDto> {
     return {
-      data: this.data.toDto() as TransactionDataDtoType<T>,
+      data: this.data.toDto(),
       inclusionProof: this.inclusionProof.toDto(),
     };
+  }
+
+  public async containsData(data: Uint8Array | null): Promise<boolean> {
+    if (this.data.dataHash) {
+      if (!data) {
+        return false;
+      }
+
+      const dataHash = await new DataHasher(this.data.dataHash.algorithm).update(data).digest();
+
+      return dataHash.equals(this.data.dataHash);
+    }
+
+    return !data;
   }
 
   public toString(): string {
