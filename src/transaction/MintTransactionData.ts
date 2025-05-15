@@ -6,6 +6,7 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { ISerializable } from '../ISerializable.js';
+import { FungibleTokenData } from '../token/fungible/FungibleTokenData.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
 
@@ -42,6 +43,7 @@ export class MintTransactionData<R extends ISerializable | null> {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: ISerializable,
+    coinData: FungibleTokenData | null,
     sourceState: RequestId,
     recipient: string,
     salt: Uint8Array,
@@ -56,6 +58,7 @@ export class MintTransactionData<R extends ISerializable | null> {
         .update(tokenType.encode())
         .update(tokenDataHash.imprint)
         .update(dataHash?.imprint ?? new Uint8Array())
+        .update(coinData?.encode() ?? new Uint8Array())
         .update(textEncoder.encode(recipient))
         .update(salt)
         .update(reason?.encode() ?? new Uint8Array())

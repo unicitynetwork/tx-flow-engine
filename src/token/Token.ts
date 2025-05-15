@@ -9,6 +9,7 @@ import { NameTagToken } from './NameTagToken.js';
 import { IMintTransactionDataDto, MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
+import { FungibleTokenData } from './fungible/FungibleTokenData.js';
 
 export const TOKEN_VERSION = '2.0';
 
@@ -17,6 +18,7 @@ export interface ITokenDto {
   readonly id: string;
   readonly type: string;
   readonly data: string;
+  readonly coins: string | null;
   readonly state: ITokenStateDto;
   readonly transactions: [ITransactionDto<IMintTransactionDataDto>, ...ITransactionDto<ITransactionDataDto>[]];
   readonly nametagTokens: ITokenDto[];
@@ -27,6 +29,7 @@ export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISe
     public readonly id: TokenId,
     public readonly type: TokenType,
     public readonly data: TD,
+    public readonly coins: FungibleTokenData | null,
     public readonly state: TokenState,
     private readonly _transactions: [Transaction<MTD>, ...Transaction<TransactionData>[]],
     private readonly _nametagTokens: NameTagToken[] = [],
@@ -46,6 +49,7 @@ export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISe
 
   public toDto(): ITokenDto {
     return {
+      coins: this.coins ? HexConverter.encode(this.coins.encode()) : null,
       data: HexConverter.encode(this.data.encode()),
       id: this.id.toDto(),
       nametagTokens: this.nametagTokens.map((token) => token.toDto()),
@@ -66,6 +70,8 @@ export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISe
           Type: ${this.type.toString()}
           Data: 
             ${this.data.toString()}
+          Coins:
+            ${this.coins?.toString() ?? null}
           State:
             ${this.state.toString()}
           Transactions: [

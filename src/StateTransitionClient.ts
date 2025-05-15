@@ -11,6 +11,7 @@ import { IAddress } from './address/IAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
 import { SubmitCommitmentStatus } from './api/SubmitCommitmentResponse.js';
 import { ISerializable } from './ISerializable.js';
+import { FungibleTokenData } from './token/fungible/FungibleTokenData.js';
 import { NameTagToken } from './token/NameTagToken.js';
 import { Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
@@ -34,6 +35,7 @@ export class StateTransitionClient {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: ISerializable,
+    coinData: FungibleTokenData,
     salt: Uint8Array,
     dataHash: DataHash | null,
     reason: R,
@@ -47,6 +49,7 @@ export class StateTransitionClient {
       tokenId,
       tokenType,
       tokenData,
+      coinData,
       sourceState,
       recipient.toDto(),
       salt,
@@ -133,7 +136,7 @@ export class StateTransitionClient {
       throw new Error('State data is not part of transaction.');
     }
 
-    return new Token(token.id, token.type, token.data, state, transactions, nametagTokens);
+    return new Token(token.id, token.type, token.data, token.coins, state, transactions, nametagTokens);
   }
 
   public async getTokenStatus(

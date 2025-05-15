@@ -1,5 +1,6 @@
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { RequestId } from '@unicitylabs/commons/lib/api/RequestId.js';
+import { CborDecoder } from '@unicitylabs/commons/lib/cbor/CborDecoder.js';
 import { DataHash } from '@unicitylabs/commons/lib/hash/DataHash.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
@@ -7,21 +8,18 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { DirectAddress } from '../address/DirectAddress.js';
 import { ISerializable } from '../ISerializable.js';
 import { MINT_SUFFIX, MINTER_SECRET } from '../StateTransitionClient.js';
-import { FungibleTokenMintTransactionFactory } from './fungible/FungibleTokenMintTransactionFactory.js';
 import { ITokenDto, Token, TOKEN_VERSION } from './Token.js';
 import { TokenId } from './TokenId.js';
 import { TokenState } from './TokenState.js';
 import { TokenType } from './TokenType.js';
 import { IPredicateFactory } from '../predicate/IPredicateFactory.js';
-import { MintTransactionData } from '../transaction/MintTransactionData.js';
+import { IMintTransactionDataDto, MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
+import { FungibleTokenData } from './fungible/FungibleTokenData.js';
 
 export abstract class TokenFactory<TD extends ISerializable> {
-  public constructor(
-    private readonly mintTransactionFactory: FungibleTokenMintTransactionFactory,
-    private readonly predicateFactory: IPredicateFactory,
-  ) {}
+  public constructor(private readonly predicateFactory: IPredicateFactory) {}
 
   public async create(data: ITokenDto): Promise<Token<TD, MintTransactionData<ISerializable | null>>> {
     const tokenVersion = data.version;
@@ -32,11 +30,13 @@ export abstract class TokenFactory<TD extends ISerializable> {
     const tokenId = TokenId.create(HexConverter.decode(data.id));
     const tokenType = TokenType.create(HexConverter.decode(data.type));
     const tokenData = await this.createData(HexConverter.decode(data.data));
+    const coinData = data.coins ? FungibleTokenData.decode(HexConverter.decode(data.coins)) : null;
 
-    const mintTransaction = await this.mintTransactionFactory.create(
+    const mintTransaction = await this.createMintTransaction(
       tokenId,
       tokenType,
       tokenData,
+      coinData,
       await RequestId.createFromImprint(tokenId.encode(), MINT_SUFFIX),
       data.transactions[0],
     );
@@ -94,7 +94,41 @@ export abstract class TokenFactory<TD extends ISerializable> {
     }
 
     // TODO: Add nametag tokens
-    return new Token(tokenId, tokenType, tokenData, state, transactions, [], tokenVersion);
+    return new Token(tokenId, tokenType, tokenData, coinData, state, transactions, [], tokenVersion);
+  }
+
+  public async createMintTransaction(
+    tokenId: TokenId,
+    tokenType: TokenType,
+    tokenData: ISerializable,
+    coinData: FungibleTokenData | null,
+    sourceState: RequestId,
+    transaction: ITransactionDto<IMintTransactionDataDto>,
+  ): Promise<Transaction<MintTransactionData<ISerializable | null>>> {
+    return new Transaction(
+      await MintTransactionData.create(
+        tokenId,
+        tokenType,
+        tokenData,
+        coinData,
+        sourceState,
+        transaction.data.recipient,
+        HexConverter.decode(transaction.data.salt),
+        transaction.data.dataHash ? DataHash.fromDto(transaction.data.dataHash) : null,
+        // TODO: Parse reason properly
+        transaction.data.reason ? this.createMintReason(HexConverter.decode(transaction.data.reason)) : null,
+      ),
+      InclusionProof.fromDto(transaction.inclusionProof),
+    );
+  }
+
+  private createMintReason(bytes: Uint8Array): ISerializable {
+    const data = CborDecoder.readArray(bytes);
+    const type = CborDecoder.readTextString(data[0]);
+    switch (type) {
+      default:
+        throw new Error('NOT IMPLEMENTED');
+    }
   }
 
   private async createTransaction(
