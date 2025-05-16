@@ -137,3 +137,5 @@ txf
 
 # jetbrains ide
 .idea
+
+/lib
