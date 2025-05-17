@@ -21,7 +21,7 @@ export class TestAggregatorClient implements IAggregatorClient {
   ): Promise<SubmitCommitmentResponse> {
     const path = requestId.toBigInt();
     const transaction = await Transaction.create(authenticator as Authenticator, transactionHash);
-    await this.smt.addLeaf(path, transaction.leafValue.imprint);
+    this.smt.addLeaf(path, transaction.leafValue.imprint);
     this.requests.set(path, transaction);
 
     return new SubmitCommitmentResponse(SubmitCommitmentStatus.SUCCESS);
