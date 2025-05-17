@@ -28,7 +28,7 @@
   "license": "ISC",
   "homepage": "https://unicitynetwork.github.io/tx-flow-engine/",
   "dependencies": {
-    "@unicitylabs/commons": "2.4.0-rc.912de7c"
+    "@unicitylabs/commons": "2.4.0-rc.ee9b3a5"
   },
   "devDependencies": {
     "@babel/preset-env": "7.27.2",

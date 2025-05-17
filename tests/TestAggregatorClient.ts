@@ -27,12 +27,12 @@ export class TestAggregatorClient implements IAggregatorClient {
     return new SubmitCommitmentResponse(SubmitCommitmentStatus.SUCCESS);
   }
 
-  public getInclusionProof(requestId: RequestId): Promise<InclusionProof> {
+  public async getInclusionProof(requestId: RequestId): Promise<InclusionProof> {
     const transaction = this.requests.get(requestId.toBigInt());
     // TODO: If element does not exist, authenticator and transactionHash should be null
     return Promise.resolve(
       new InclusionProof(
-        this.smt.getPath(requestId.toBigInt()),
+        await this.smt.getPath(requestId.toBigInt()),
         transaction?.authenticator as Authenticator,
         transaction?.transactionHash as DataHash,
       ),

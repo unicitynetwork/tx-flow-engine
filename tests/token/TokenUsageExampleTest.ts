@@ -1,6 +1,7 @@
 import { InclusionProof } from '@unicitylabs/commons/lib/api/InclusionProof.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
+import { JsonRpcNetworkError } from '@unicitylabs/commons/lib/json-rpc/JsonRpcNetworkError.js';
 import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.js';
 import { SparseMerkleTree } from '@unicitylabs/commons/lib/smt/SparseMerkleTree.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
@@ -65,8 +66,12 @@ function waitInclusionProof(
 
           timeoutId = setTimeout(fetchProof, interval);
         })
-        .catch(() => {
-          timeoutId = setTimeout(fetchProof, interval);
+        .catch((err) => {
+          if (err instanceof JsonRpcNetworkError && err.status === 404) {
+            timeoutId = setTimeout(fetchProof, interval);
+          } else {
+            throw err;
+          }
         });
     };
 
@@ -109,9 +114,7 @@ async function createMintTokenData(secret: Uint8Array): Promise<IMintTokenData> 
 
 describe('Transition', function () {
   it('should verify the token latest state', async () => {
-    const client = new StateTransitionClient(
-      new TestAggregatorClient(await SparseMerkleTree.create(HashAlgorithm.SHA256)),
-    );
+    const client = new StateTransitionClient(new TestAggregatorClient(new SparseMerkleTree(HashAlgorithm.SHA256)));
     const secret = new TextEncoder().encode('secret');
     const mintTokenData = await createMintTokenData(secret);
     const mintCommitment = await client.submitMintTransaction(
@@ -174,9 +177,7 @@ describe('Transition', function () {
   }, 15000);
 
   it('should import token and be able to send it', async () => {
-    const client = new StateTransitionClient(
-      new TestAggregatorClient(await SparseMerkleTree.create(HashAlgorithm.SHA256)),
-    );
+    const client = new StateTransitionClient(new TestAggregatorClient(new SparseMerkleTree(HashAlgorithm.SHA256)));
     const secret = new TextEncoder().encode('tere');
 
     let token = await new TestTokenFactory().create(

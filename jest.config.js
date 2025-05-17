@@ -1,16 +1,14 @@
 export default {
-  testEnvironment: 'node',
-  transform: {
-    '^.+\\.[tj]sx?$': 'babel-jest'
-  },
+  collectCoverage: true,
+  collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
+  extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
+  testEnvironment: 'node',
   testMatch: ['<rootDir>/tests/**/*Test.ts'],
-  collectCoverage: true,
-  collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
-  transformIgnorePatterns: [
-    '/node_modules/(?!@unicitylabs)'
-  ],
-  extensionsToTreatAsEsm: ['.ts'],
+  transform: {
+    '^.+\\.[tj]sx?$': 'babel-jest',
+  },
+  transformIgnorePatterns: ['/node_modules/(?!@unicitylabs)'],
 };

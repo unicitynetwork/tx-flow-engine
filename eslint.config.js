@@ -19,7 +19,6 @@ export default [
       sourceType: 'module',
     },
     rules: {
-      'import/extensions': ['error', 'ignorePackages'],
       '@typescript-eslint/explicit-function-return-type': 'error',
       '@typescript-eslint/explicit-member-accessibility': 'error',
       '@typescript-eslint/member-ordering': 'error',
@@ -44,6 +43,7 @@ export default [
           selector: ['variable'],
         },
       ],
+      'import/extensions': ['error', 'ignorePackages'],
       'import/no-unresolved': 'off',
       'import/order': [
         'error',
