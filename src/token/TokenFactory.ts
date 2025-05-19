@@ -18,10 +18,13 @@ import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
 import { TokenCoinData } from './fungible/TokenCoinData.js';
 
-export abstract class TokenFactory<TD extends ISerializable> {
+export class TokenFactory {
   public constructor(private readonly predicateFactory: IPredicateFactory) {}
 
-  public async create(data: ITokenDto): Promise<Token<TD, MintTransactionData<ISerializable | null>>> {
+  public async create<TD extends ISerializable>(
+    data: ITokenDto,
+    createData: (data: Uint8Array) => Promise<TD>,
+  ): Promise<Token<TD, MintTransactionData<ISerializable | null>>> {
     const tokenVersion = data.version;
     if (tokenVersion !== TOKEN_VERSION) {
       throw new Error('Cannot parse token. Version mismatch.');
@@ -29,7 +32,7 @@ export abstract class TokenFactory<TD extends ISerializable> {
 
     const tokenId = TokenId.create(HexConverter.decode(data.id));
     const tokenType = TokenType.create(HexConverter.decode(data.type));
-    const tokenData = await this.createData(HexConverter.decode(data.data));
+    const tokenData = await createData(HexConverter.decode(data.data));
     const coinData = data.coins ? TokenCoinData.decode(HexConverter.decode(data.coins)) : null;
 
     const mintTransaction = await this.createMintTransaction(
@@ -151,6 +154,4 @@ export abstract class TokenFactory<TD extends ISerializable> {
       InclusionProof.fromDto(inclusionProof),
     );
   }
-
-  protected abstract createData(data: Uint8Array): Promise<TD>;
 }
