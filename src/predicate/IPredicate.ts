@@ -12,7 +12,6 @@ export interface IPredicateDto {
 export interface IPredicate {
   readonly reference: DataHash;
   readonly hash: DataHash;
-  readonly nonce: Uint8Array;
 
   isOwner(publicKey: Uint8Array): Promise<boolean>;
   verify(transaction: Transaction<MintTransactionData<ISerializable | null> | TransactionData>): Promise<boolean>;

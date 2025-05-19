@@ -9,7 +9,7 @@ import { NameTagToken } from './NameTagToken.js';
 import { IMintTransactionDataDto, MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
-import { FungibleTokenData } from './fungible/FungibleTokenData.js';
+import { TokenCoinData } from './fungible/TokenCoinData.js';
 
 export const TOKEN_VERSION = '2.0';
 
@@ -29,7 +29,7 @@ export class Token<TD extends ISerializable, MTD extends MintTransactionData<ISe
     public readonly id: TokenId,
     public readonly type: TokenType,
     public readonly data: TD,
-    public readonly coins: FungibleTokenData | null,
+    public readonly coins: TokenCoinData | null,
     public readonly state: TokenState,
     private readonly _transactions: [Transaction<MTD>, ...Transaction<TransactionData>[]],
     private readonly _nametagTokens: NameTagToken[] = [],

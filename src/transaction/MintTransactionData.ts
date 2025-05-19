@@ -6,9 +6,9 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { ISerializable } from '../ISerializable.js';
-import { FungibleTokenData } from '../token/fungible/FungibleTokenData.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
+import { TokenCoinData } from '../token/fungible/TokenCoinData.js';
 
 export interface IMintTransactionDataDto {
   readonly recipient: string;
@@ -43,7 +43,7 @@ export class MintTransactionData<R extends ISerializable | null> {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: ISerializable,
-    coinData: FungibleTokenData | null,
+    coinData: TokenCoinData | null,
     sourceState: RequestId,
     recipient: string,
     salt: Uint8Array,

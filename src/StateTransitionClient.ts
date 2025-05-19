@@ -11,7 +11,7 @@ import { IAddress } from './address/IAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
 import { SubmitCommitmentStatus } from './api/SubmitCommitmentResponse.js';
 import { ISerializable } from './ISerializable.js';
-import { FungibleTokenData } from './token/fungible/FungibleTokenData.js';
+import { TokenCoinData } from './token/fungible/TokenCoinData.js';
 import { NameTagToken } from './token/NameTagToken.js';
 import { Token } from './token/Token.js';
 import { TokenId } from './token/TokenId.js';
@@ -35,7 +35,7 @@ export class StateTransitionClient {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: ISerializable,
-    coinData: FungibleTokenData,
+    coinData: TokenCoinData,
     salt: Uint8Array,
     dataHash: DataHash | null,
     reason: R,

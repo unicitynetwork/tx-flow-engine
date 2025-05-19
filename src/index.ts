@@ -30,9 +30,8 @@ export * from './token/TokenState.js';
 export * from './token/TokenType.js';
 
 // Fungible token exports
-export * from './token/fungible/FungibleTokenData.js';
-export * from './token/fungible/FungibleTokenId.js';
-export * from './token/fungible/FungibleTokenMintReasonType.js';
+export * from './token/fungible/TokenCoinData.js';
+export * from './token/fungible/CoinId.js';
 
 // Transaction exports
 export * from './transaction/Commitment.js';

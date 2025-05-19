@@ -16,7 +16,7 @@ import { IPredicateFactory } from '../predicate/IPredicateFactory.js';
 import { IMintTransactionDataDto, MintTransactionData } from '../transaction/MintTransactionData.js';
 import { ITransactionDto, Transaction } from '../transaction/Transaction.js';
 import { ITransactionDataDto, TransactionData } from '../transaction/TransactionData.js';
-import { FungibleTokenData } from './fungible/FungibleTokenData.js';
+import { TokenCoinData } from './fungible/TokenCoinData.js';
 
 export abstract class TokenFactory<TD extends ISerializable> {
   public constructor(private readonly predicateFactory: IPredicateFactory) {}
@@ -30,7 +30,7 @@ export abstract class TokenFactory<TD extends ISerializable> {
     const tokenId = TokenId.create(HexConverter.decode(data.id));
     const tokenType = TokenType.create(HexConverter.decode(data.type));
     const tokenData = await this.createData(HexConverter.decode(data.data));
-    const coinData = data.coins ? FungibleTokenData.decode(HexConverter.decode(data.coins)) : null;
+    const coinData = data.coins ? TokenCoinData.decode(HexConverter.decode(data.coins)) : null;
 
     const mintTransaction = await this.createMintTransaction(
       tokenId,
@@ -101,7 +101,7 @@ export abstract class TokenFactory<TD extends ISerializable> {
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: ISerializable,
-    coinData: FungibleTokenData | null,
+    coinData: TokenCoinData | null,
     sourceState: RequestId,
     transaction: ITransactionDto<IMintTransactionDataDto>,
   ): Promise<Transaction<MintTransactionData<ISerializable | null>>> {

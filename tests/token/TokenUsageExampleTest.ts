@@ -13,8 +13,8 @@ import { MaskedPredicate } from '../../src/predicate/MaskedPredicate.js';
 import { PredicateFactory } from '../../src/predicate/PredicateFactory.js';
 import { UnmaskedPredicate } from '../../src/predicate/UnmaskedPredicate.js';
 import { StateTransitionClient } from '../../src/StateTransitionClient.js';
-import { FungibleTokenData } from '../../src/token/fungible/FungibleTokenData.js';
-import { FungibleTokenId } from '../../src/token/fungible/FungibleTokenId.js';
+import { CoinId } from '../../src/token/fungible/CoinId.js';
+import { TokenCoinData } from '../../src/token/fungible/TokenCoinData.js';
 import { Token } from '../../src/token/Token.js';
 import { TokenFactory } from '../../src/token/TokenFactory.js';
 import { TokenId } from '../../src/token/TokenId.js';
@@ -31,7 +31,7 @@ interface IMintTokenData {
   tokenId: TokenId;
   tokenType: TokenType;
   tokenData: TestTokenData;
-  coinData: FungibleTokenData;
+  coinData: TokenCoinData;
   data: Uint8Array;
   salt: Uint8Array;
   nonce: Uint8Array;
@@ -83,9 +83,9 @@ async function createMintTokenData(secret: Uint8Array): Promise<IMintTokenData> 
   const tokenId = TokenId.create(crypto.getRandomValues(new Uint8Array(32)));
   const tokenType = TokenType.create(crypto.getRandomValues(new Uint8Array(32)));
   const tokenData = new TestTokenData(crypto.getRandomValues(new Uint8Array(32)));
-  const coinData = new FungibleTokenData([
-    [new FungibleTokenId(crypto.getRandomValues(new Uint8Array(32))), BigInt(Math.round(Math.random() * 90)) + 10n],
-    [new FungibleTokenId(crypto.getRandomValues(new Uint8Array(32))), BigInt(Math.round(Math.random() * 90)) + 10n],
+  const coinData = new TokenCoinData([
+    [new CoinId(crypto.getRandomValues(new Uint8Array(32))), BigInt(Math.round(Math.random() * 90)) + 10n],
+    [new CoinId(crypto.getRandomValues(new Uint8Array(32))), BigInt(Math.round(Math.random() * 90)) + 10n],
   ]);
   const data = crypto.getRandomValues(new Uint8Array(32));
 
@@ -163,7 +163,7 @@ describe('Transition', function () {
 
     const commitment = await client.submitTransaction(
       transactionData,
-      await SigningService.createFromSecret(secret, token.state.unlockPredicate.nonce),
+      await SigningService.createFromSecret(secret, mintTokenData.predicate.nonce),
     );
     const transaction = await client.createTransaction(commitment, await waitInclusionProof(client, commitment));
 
@@ -205,9 +205,10 @@ describe('Transition', function () {
       token.nametagTokens,
     );
 
+    const tokenPredicate = token.state.unlockPredicate as MaskedPredicate;
     const commitment = await client.submitTransaction(
       transactionData,
-      await SigningService.createFromSecret(secret, token.state.unlockPredicate.nonce),
+      await SigningService.createFromSecret(secret, tokenPredicate.nonce),
     );
 
     const transaction = await client.createTransaction(commitment, await client.getInclusionProof(commitment));

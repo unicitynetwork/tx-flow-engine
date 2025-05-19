@@ -1,7 +1,6 @@
 import { DataHash } from '@unicitylabs/commons/lib/hash/DataHash.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
-import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { IPredicate } from './IPredicate.js';
@@ -20,14 +19,9 @@ export class BurnPredicate implements IPredicate {
 
   public readonly type: PredicateType = BurnPredicate.TYPE;
   public readonly hash: DataHash;
-  private readonly _nonce = new Uint8Array();
 
   private constructor(public readonly reference: DataHash) {
     this.hash = reference;
-  }
-
-  public get nonce(): Uint8Array {
-    return this._nonce;
   }
 
   public static async create(tokenId: TokenId, tokenType: TokenType): Promise<BurnPredicate> {
@@ -62,7 +56,6 @@ export class BurnPredicate implements IPredicate {
   public toString(): string {
     return dedent`
           Predicate[${this.type}]:
-            Nonce: ${HexConverter.encode(this.nonce)}
             Hash: ${this.hash.toString()}`;
   }
 
