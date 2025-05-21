@@ -6,9 +6,9 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 import { dedent } from '@unicitylabs/commons/lib/util/StringUtils.js';
 
 import { ISerializable } from '../ISerializable.js';
+import { TokenCoinData } from '../token/fungible/TokenCoinData.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
-import { TokenCoinData } from '../token/fungible/TokenCoinData.js';
 
 export interface IMintTransactionDataDto {
   readonly recipient: string;

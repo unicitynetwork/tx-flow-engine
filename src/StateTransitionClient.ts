@@ -7,7 +7,6 @@ import { SigningService } from '@unicitylabs/commons/lib/signing/SigningService.
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { DirectAddress } from './address/DirectAddress.js';
-import { IAddress } from './address/IAddress.js';
 import { IAggregatorClient } from './api/IAggregatorClient.js';
 import { SubmitCommitmentStatus } from './api/SubmitCommitmentResponse.js';
 import { ISerializable } from './ISerializable.js';
@@ -31,7 +30,7 @@ export class StateTransitionClient {
   public constructor(private readonly client: IAggregatorClient) {}
 
   public async submitMintTransaction<R extends ISerializable | null>(
-    recipient: IAddress,
+    recipient: DirectAddress,
     tokenId: TokenId,
     tokenType: TokenType,
     tokenData: ISerializable,
