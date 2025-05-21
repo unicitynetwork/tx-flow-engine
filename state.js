@@ -17,6 +17,7 @@ class State {
     }
 
     verify(input){
+		// TODO: State hash should be on state not on challenge?
 	return this.challenge.verify(input, this.calculateStateHash());
     }
 

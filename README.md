@@ -40,6 +40,19 @@ When the recipient gets the JSON document containing the token, the transaction 
  - go to `aggregators_net` subfolder
  - run `npm install`
 
+## Publishing the package
+This package is configured to build TypeScript to the `lib` directory when publishing:
+
+```bash
+# Build the TypeScript code
+npm run build
+
+# Publish to npm
+npm publish
+```
+
+Only the compiled JavaScript files in the `lib` directory, along with TypeScript declaration files, LICENSE, and README.md are included in the published package.
+
 ## Usage
  - use `state_machine.js` and `helper.js` for SDK
  - use `token_manager.js` as generic CLI tool

@@ -1,0 +1,48 @@
+# Source files
+src/
+
+# Tests
+tests/
+*.test.ts
+*.spec.ts
+
+# Config files
+.eslintrc.js
+.eslintrc.json
+.eslintrc
+eslint.config.js
+.prettierrc
+.prettierrc.js
+babel.config.js
+tsconfig.json
+jest.config.js
+webpack.config.js
+
+# Development files
+docs/
+cli/
+public/
+*.json
+\!package.json
+\!package-lock.json
+pubkey_challenge.js
+state.js
+state_machine.js
+token.js
+token_manager.js
+tokenpool.js
+
+# Generated files
+coverage/
+.nyc_output/
+.vscode/
+.idea/
+
+# Misc
+.DS_Store
+.env
+.env.*
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
