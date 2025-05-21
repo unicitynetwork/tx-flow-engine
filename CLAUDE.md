@@ -1,26 +1,24 @@
-# CLAUDE.md - Coding Assistant Guide
+# TX-FLOW-ENGINE Development Guidelines
 
-## Build & Test Commands
-- Build: `npm run build` 
-- Build check (no emit): `npm run build:check` 
-- Test: `npm test`
-- Test single file: `npm test -- tests/path/to/file.ts`
-- Lint: `npm run lint`
-- Lint with auto-fix: `npm run lint:fix`
-- Publish: `npm publish`
+## Build Commands
+- Build project: `npm run build` (creates browser and Node.js bundles in docs/ directory)
+- Production build: Modify webpack.config.js mode to 'production' before running build
+- Manual testing: Use CLI tools in `cli/` directory (e.g., `./cli/mint.sh`, `./cli/send.sh`)
 
 ## Code Style Guidelines
-- **Formatting**: 2 spaces indentation
-- **Naming**: camelCase for variables/functions, PascalCase for classes, interfaces prefixed with 'I'
-- **Imports**: Group by: 1) built-ins 2) @unicitylabs packages 3) local imports, with newlines between groups
-- **Imports order**: Alphabetize imports within groups (case-insensitive)  
-- **Types**: Use explicit return types on functions and explicit member accessibility
-- **Error Handling**: Use specific error messages in throw statements
-- **Comments**: Document complex logic with comments (especially crypto operations)
-- **Keys**: Sort object keys alphabetically when 2+ keys present
+- **Modules**: Use CommonJS pattern with explicit `require`/`module.exports`
+- **Naming**: camelCase for variables/functions, PascalCase for classes, UPPER_SNAKE for constants
+- **Functions**: Async operations should use async/await pattern consistently
+- **Imports**: Group imports by source (internal vs external libraries)
+- **Error Handling**: Use try/catch blocks with specific error messages
+- **Parameters**: Use object destructuring for function parameters with multiple arguments
 
-## Project Overview
-Transaction flow engine for Unicity Network's offchain token system, providing:
-- Token state transition (mint, transfer, receive)
-- Aggregator interface for commitment and proof generation
-- Cryptographic verification for token ownership
+## Project Structure
+- Core engine: state_machine.js (entry point), token.js, transaction.js, state.js
+- CLI interface: Scripts in `cli/` directory for common operations
+- Web interface: Components in `src/` with HTML entry point at `src/ipts.html`
+- Documentation: Protocol spec in `unicity-token-protocol-spec.md`
+
+## External Dependencies
+- Main dependency: `@unicitylabs/shared` for crypto operations and transport
+- Requires Node.js crypto modules (polyfilled for browser environments)
