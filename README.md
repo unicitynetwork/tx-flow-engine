@@ -7,7 +7,7 @@ completely other kinds of processes. All the transaction commitments are being a
 accomodating millions of transaction commitments per block.
 
 ## Web GUI interface
-[Token GUI stand-alone page](https://unicitynetwork.github.io/tx-flow-engine/)
+[Token GUI stand-alone page](https://unicitynetwork.github.io/state-transition-sdk/)
 ### Mint token:
  - Set the password to lock up the token to be minted (central panel, field `Secret`)
  - Set the token type (or leave default `unicity_test_coin`) in he field under button `New`, right pannel
