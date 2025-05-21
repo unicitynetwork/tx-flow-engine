@@ -4,6 +4,7 @@ import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { AddressScheme } from './AddressScheme.js';
 import { IAddress } from './IAddress.js';
+import { CborEncoder } from "@unicitylabs/commons/lib/cbor/CborEncoder.js";
 
 export class DirectAddress implements IAddress {
   private constructor(
@@ -23,12 +24,15 @@ export class DirectAddress implements IAddress {
     return new DirectAddress(predicateReference, checksum.data.slice(0, 4));
   }
 
-  // TODO: Should hash algorithm be derivable from the string?
-  public toDto(): string {
-    return `${this.scheme}://${HexConverter.encode(this.data)}${HexConverter.encode(this.checksum)}`;
+  public toJSON(): string {
+    return this.toString();
+  }
+
+  public toCBOR(): Uint8Array {
+    return CborEncoder.encodeTextString(this.toString());
   }
 
   public toString(): string {
-    return `DirectAddress[${HexConverter.encode(this.data)}${HexConverter.encode(this.checksum)}]`;
+    return `${this.scheme}://${HexConverter.encode(this.data)}${HexConverter.encode(this.checksum)}`;
   }
 }

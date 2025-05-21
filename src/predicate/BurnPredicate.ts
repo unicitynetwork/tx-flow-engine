@@ -7,6 +7,7 @@ import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
+import { CborEncoder } from "@unicitylabs/commons/lib/cbor/CborEncoder.js";
 
 interface IPredicateDto {
   readonly type: PredicateType;
@@ -29,7 +30,7 @@ export class BurnPredicate implements IPredicate {
     return new BurnPredicate(reference);
   }
 
-  public static async fromDto(tokenId: TokenId, tokenType: TokenType): Promise<BurnPredicate> {
+  public static async fromJSON(tokenId: TokenId, tokenType: TokenType): Promise<BurnPredicate> {
     const reference = await BurnPredicate.calculateReference(tokenId, tokenType);
 
     return new BurnPredicate(reference);
@@ -43,10 +44,14 @@ export class BurnPredicate implements IPredicate {
       .digest();
   }
 
-  public toDto(): IPredicateDto {
+  public toJSON(): IPredicateDto {
     return {
       type: this.type,
     };
+  }
+
+  public toCBOR(): Uint8Array {
+    return CborEncoder.encodeArray([CborEncoder.encodeTextString(this.type)]);
   }
 
   public verify(): Promise<boolean> {

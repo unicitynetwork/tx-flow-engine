@@ -50,7 +50,7 @@ export class StateTransitionClient {
       tokenData,
       coinData,
       sourceState,
-      recipient.toDto(),
+      recipient.toJSON(),
       salt,
       dataHash ?? null,
       reason,
@@ -125,7 +125,7 @@ export class StateTransitionClient {
     // TODO: Move address processing to a separate method
     // TODO: Resolve proxy address
     const expectedAddress = await DirectAddress.create(state.unlockPredicate.reference.imprint);
-    if (expectedAddress.toDto() !== transaction.data.recipient) {
+    if (expectedAddress.toJSON() !== transaction.data.recipient) {
       throw new Error('Recipient address mismatch');
     }
 
