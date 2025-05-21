@@ -1,3 +1,4 @@
+import { CborEncoder } from '@unicitylabs/commons/lib/cbor/CborEncoder.js';
 import { DataHash } from '@unicitylabs/commons/lib/hash/DataHash.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
@@ -7,13 +8,10 @@ import { IPredicate } from './IPredicate.js';
 import { PredicateType } from './PredicateType.js';
 import { TokenId } from '../token/TokenId.js';
 import { TokenType } from '../token/TokenType.js';
-import { CborEncoder } from "@unicitylabs/commons/lib/cbor/CborEncoder.js";
 
 interface IPredicateDto {
   readonly type: PredicateType;
 }
-
-const textEncoder = new TextEncoder();
 
 export class BurnPredicate implements IPredicate {
   private static readonly TYPE = PredicateType.BURN;
@@ -38,9 +36,13 @@ export class BurnPredicate implements IPredicate {
 
   private static calculateReference(tokenId: TokenId, tokenType: TokenType): Promise<DataHash> {
     return new DataHasher(HashAlgorithm.SHA256)
-      .update(textEncoder.encode(BurnPredicate.TYPE))
-      .update(tokenId.encode())
-      .update(tokenType.encode())
+      .update(
+        CborEncoder.encodeArray([
+          CborEncoder.encodeTextString(BurnPredicate.TYPE),
+          tokenId.toCBOR(),
+          tokenType.toCBOR(),
+        ]),
+      )
       .digest();
   }
 

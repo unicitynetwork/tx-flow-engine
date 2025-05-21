@@ -18,8 +18,6 @@ export interface ITransactionDataDto {
   readonly nameTags: ITokenJson[];
 }
 
-const textEncoder = new TextEncoder();
-
 export class TransactionData {
   private constructor(
     public readonly hash: DataHash,
@@ -52,11 +50,15 @@ export class TransactionData {
   ): Promise<TransactionData> {
     return new TransactionData(
       await new DataHasher(HashAlgorithm.SHA256)
-        .update(state.hash.imprint)
-        .update(dataHash?.imprint ?? new Uint8Array())
-        .update(textEncoder.encode(recipient))
-        .update(salt)
-        .update(message ?? new Uint8Array())
+        .update(
+          CborEncoder.encodeArray([
+            state.hash.toCBOR(),
+            dataHash?.toCBOR() ?? CborEncoder.encodeNull(),
+            CborEncoder.encodeTextString(recipient),
+            CborEncoder.encodeByteString(salt),
+            CborEncoder.encodeOptional(message, CborEncoder.encodeByteString),
+          ]),
+        )
         .digest(),
       state,
       recipient,

@@ -1,5 +1,5 @@
+import { CborEncoder } from '@unicitylabs/commons/lib/cbor/CborEncoder.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
-import { CborEncoder } from "@unicitylabs/commons/lib/cbor/CborEncoder.js";
 
 export class CoinId {
   public constructor(private readonly data: Uint8Array) {

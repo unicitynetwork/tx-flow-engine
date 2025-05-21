@@ -1,10 +1,10 @@
+import { CborEncoder } from '@unicitylabs/commons/lib/cbor/CborEncoder.js';
 import { DataHasher } from '@unicitylabs/commons/lib/hash/DataHasher.js';
 import { HashAlgorithm } from '@unicitylabs/commons/lib/hash/HashAlgorithm.js';
 import { HexConverter } from '@unicitylabs/commons/lib/util/HexConverter.js';
 
 import { AddressScheme } from './AddressScheme.js';
 import { IAddress } from './IAddress.js';
-import { CborEncoder } from "@unicitylabs/commons/lib/cbor/CborEncoder.js";
 
 export class DirectAddress implements IAddress {
   private constructor(

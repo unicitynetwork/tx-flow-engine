@@ -34,8 +34,12 @@ export class TokenState {
       unlockPredicate,
       data,
       await new DataHasher(HashAlgorithm.SHA256)
-        .update(unlockPredicate.hash.imprint)
-        .update(data ?? new Uint8Array())
+        .update(
+          CborEncoder.encodeArray([
+            unlockPredicate.hash.toCBOR(),
+            CborEncoder.encodeOptional(data, CborEncoder.encodeByteString),
+          ]),
+        )
         .digest(),
     );
   }
